@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Command Prompt</title>
+  <title>Custom Command Prompt</title>
 
   <style>
     @font-face {
@@ -64,7 +64,9 @@
 
     function scrollToBottom() {
       requestAnimationFrame(() => {
-        sentinel.scrollIntoView({ block: 'end' });
+        requestAnimationFrame(() => {
+          sentinel.scrollIntoView({ block: 'end' });
+        });
       });
     }
 
