@@ -13,7 +13,7 @@
     background: #000;
     font-family: 'VGAFont', monospace;
     color: white;
-    overflow: hidden; /* Prevent page scroll */
+    overflow: hidden;
   }
   #container {
     height: 100vh;
@@ -22,7 +22,7 @@
   }
   #terminal {
     flex-grow: 1;
-    overflow-y: auto; /* Allow scrolling */
+    overflow-y: auto;
     padding: 20px;
     white-space: pre-wrap;
     background: rgba(0,0,0,0.5);
@@ -55,19 +55,18 @@
 </style>
 </head>
 <body>
-  <div id="container">
-    <div id="terminal" tabindex="0"></div>
-  </div>
-  <div id="input-container">
-    <span id="input-prompt">&gt; </span>
-    <input id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
-  </div>
+<div id="container">
+  <div id="terminal" tabindex="0"></div>
+</div>
+<div id="input-container">
+  <span id="input-prompt">&gt; </span>
+  <input id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
+</div>
 
 <script>
   const terminal = document.getElementById('terminal');
   const input = document.getElementById('input');
   const prompt = '> ';
-
   let history = [];
   let historyIndex = -1;
   const STORAGE_KEY = 'cmd_history';
@@ -87,10 +86,6 @@
     const div = document.createElement('div');
     div.textContent = text;
     terminal.appendChild(div);
-    scrollToBottom();
-  }
-
-  function scrollToBottom() {
     terminal.scrollTop = terminal.scrollHeight;
   }
 
@@ -104,13 +99,13 @@
         write(`Commands:
 clear, help, swapbg [color] [url], platform, useragent, speak [text],
 echo [text], curl [url] [download true|false], save [filename] [text],
-date, github [owner] [repo], theme [default|aero|adult]`);
+date, github [owner] [repo], youtube [video_id], ai [text], theme [default|aero|adult]`);
       } else if (c === 'swapbg') {
         const color = parts[1];
-        const img = parts.slice(2).join(' '); // join rest as URL
+        const img = parts.slice(2).join(' ');
         if (color) document.body.style.backgroundColor = color;
         if (img) {
-          document.body.style.backgroundImage = `url("${img.replace(/"/g, '\\"')}")`;
+          document.body.style.backgroundImage = 'url("' + img + '")';
           document.body.style.backgroundSize = 'cover';
         } else {
           document.body.style.backgroundImage = '';
@@ -178,6 +173,37 @@ date, github [owner] [repo], theme [default|aero|adult]`);
           );
         } else {
           write('Usage: github [owner] [repo]');
+        }
+      } else if (c === 'youtube') {
+        const videoId = parts[1];
+        if (videoId) {
+          try {
+            const oEmbedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+            if (!oEmbedRes.ok) throw new Error('Video not found');
+            const data = await oEmbedRes.json();
+            write(`Title: ${data.title}
+Author: ${data.author_name}
+Embed HTML:
+${data.html}`);
+          } catch (e) {
+            write(`Error: ${e.message}`);
+          }
+        } else {
+          write('Usage: youtube [video_id]');
+        }
+      } else if (c === 'ai') {
+        const promptText = parts.slice(1).join(' ');
+        if (promptText) {
+          try {
+            const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptText)}?private=true&model=mistral`);
+            if (!res.ok) throw new Error('AI request failed');
+            const data = await res.text();
+            write(`AI: ${data}`);
+          } catch (e) {
+            write(`Error: ${e.message}`);
+          }
+        } else {
+          write('Usage: ai [your text prompt]');
         }
       } else if (c === 'theme') {
         const theme = parts[1]?.toLowerCase();
@@ -260,10 +286,8 @@ date, github [owner] [repo], theme [default|aero|adult]`);
     e.preventDefault();
   }, { passive: false });
 
-  terminal.addEventListener('keydown', e => {
-    if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key)) {
-      e.preventDefault();
-    }
+  window.addEventListener('scroll', () => {
+    window.scrollTo(0, 0);
   });
 
   input.addEventListener('paste', e => {
