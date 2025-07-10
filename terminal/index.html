@@ -30,7 +30,7 @@
       overflow-y: auto;
       padding: 20px;
       white-space: pre-wrap;
-      background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+      background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
     }
 
     .input-line { display: inline; }
@@ -113,7 +113,7 @@
           terminal.innerHTML = '';
           terminal.appendChild(sentinel);
         } else if (c === 'help') {
-          write('\nCommands: clear, help, swapbg [color] [url], platform, useragent, speak [text], echo [text], curl [url], date\n');
+          write('\nCommands: clear, help, swapbg [color] [url], platform, useragent, speak [text], echo [text], curl [url] [download true|false], save [filename] [text], date, github [owner] [repo]\n');
         } else if (c === 'swapbg') {
           const color = parts[1], img = parts[2];
           if (color) document.body.style.backgroundColor = color;
@@ -136,17 +136,61 @@
           write(`\n${parts.slice(1).join(' ')}\n`);
         } else if (c === 'curl') {
           const url = parts[1];
+          const download = parts[2] && parts[2].toLowerCase() === 'true';
           if (url) {
             try {
               const res = await fetch(url);
-              const t = await res.text();
-              write(`\n${escapeHtml(t)}\n`);
+              const blob = await res.blob();
+              if (download) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = url.split('/').pop() || 'download';
+                a.click();
+                URL.revokeObjectURL(a.href);
+                write(`\nDownloaded: ${a.download}\n`);
+              } else {
+                const text = await blob.text();
+                write(`\n${escapeHtml(text)}\n`);
+              }
             } catch (err) {
               write(`\nError: ${escapeHtml(err.toString())}\n`);
             }
-          } else write('\nUsage: curl [url]\n');
+          } else write('\nUsage: curl [url] [download true|false]\n');
+        } else if (c === 'save') {
+          const fileName = parts[1];
+          const text = parts.slice(2).join(' ');
+          if (fileName && text) {
+            const blob = new Blob([text], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            write(`\nSaved file: ${fileName}\n`);
+          } else {
+            write('\nUsage: save [filename] [text]\n');
+          }
         } else if (c === 'date') {
           write(`\n${new Date().toString()}\n`);
+        } else if (c === 'github') {
+          const owner = parts[1];
+          const repo = parts[2];
+          if (owner && repo) {
+            try {
+              const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+              if (!res.ok) throw new Error(`Repo not found or API error`);
+              const data = await res.json();
+              write(`\nName: ${data.full_name}
+Description: ${data.description || 'No description'}
+Stars: ${data.stargazers_count}
+Forks: ${data.forks_count}
+URL: ${data.html_url}\n`);
+            } catch (err) {
+              write(`\nError: ${escapeHtml(err.toString())}\n`);
+            }
+          } else {
+            write('\nUsage: github [owner] [repo]\n');
+          }
         } else {
           let r = eval(cmd);
           if (r instanceof Promise) r = await r;
