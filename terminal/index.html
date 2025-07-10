@@ -106,10 +106,11 @@ clear, help, swapbg [color] [url], platform, useragent, speak [text],
 echo [text], curl [url] [download true|false], save [filename] [text],
 date, github [owner] [repo], theme [default|aero|adult]`);
       } else if (c === 'swapbg') {
-        const color = parts[1], img = parts[2];
+        const color = parts[1];
+        const img = parts.slice(2).join(' '); // join rest as URL
         if (color) document.body.style.backgroundColor = color;
         if (img) {
-          document.body.style.backgroundImage = "url(" + img + ")";
+          document.body.style.backgroundImage = `url("${img.replace(/"/g, '\\"')}")`;
           document.body.style.backgroundSize = 'cover';
         } else {
           document.body.style.backgroundImage = '';
