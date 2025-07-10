@@ -1,269 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Command Prompt</title>
-  <style>
-    @font-face {
-      font-family: 'VGAFont';
-      src: url('https://SlimeTube.github.io/vga.ttf') format('truetype');
-    }
-    html, body {
-      margin: 0; padding: 0; height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: 'VGAFont', monospace;
-      color: white;
-    }
-    #container {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    #terminal {
-      flex: 1 1 auto;
-      overflow-y: auto;
-      padding: 20px;
-      white-space: pre-wrap;
-      background: rgba(0, 0, 0, 0.5); /* Default semi-transparent */
-      text-align: left;
-    }
-    .input-line { display: inline; }
-    .cursor {
-      display: inline-block;
-      width: 10px;
-      background: currentColor;
-      animation: blink 1s steps(2, start) infinite;
-    }
-    @keyframes blink { to { visibility: hidden; } }
-  </style>
+<meta charset="UTF-8" />
+<title>Command Prompt</title>
+<style>
+  @font-face {
+    font-family: 'VGAFont';
+    src: url('https://SlimeTube.github.io/vga.ttf') format('truetype');
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #000;
+    font-family: 'VGAFont', monospace;
+    color: white;
+    overflow: hidden; /* Prevent page scroll */
+  }
+  #container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #terminal {
+    flex-grow: 1;
+    overflow-y: auto; /* Allow scrolling */
+    padding: 20px;
+    white-space: pre-wrap;
+    background: rgba(0,0,0,0.5);
+  }
+  #input-container {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.5);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+  }
+  #input-prompt {
+    user-select: none;
+  }
+  #input {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-family: 'VGAFont', monospace;
+    font-size: 16px;
+  }
+  #input::selection {
+    background: #4a90e2;
+    color: white;
+  }
+</style>
 </head>
 <body>
   <div id="container">
     <div id="terminal" tabindex="0"></div>
   </div>
+  <div id="input-container">
+    <span id="input-prompt">&gt; </span>
+    <input id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
+  </div>
 
-  <script>
-    const terminal = document.getElementById('terminal');
-    const prompt = '> ';
-    let input = [];
-    let cursorPos = 0;
-    let history = [];
-    let historyIndex = -1;
-    const STORAGE_KEY = 'cmd_history';
+<script>
+  const terminal = document.getElementById('terminal');
+  const input = document.getElementById('input');
+  const prompt = '> ';
 
-    const sentinel = document.createElement('div');
-    terminal.appendChild(sentinel);
+  let history = [];
+  let historyIndex = -1;
+  const STORAGE_KEY = 'cmd_history';
 
-    function scrollToBottom() {
-      requestAnimationFrame(() => {
-        sentinel.scrollIntoView({ block: 'end' });
-      });
+  function saveHistory() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  }
+  function loadHistory() {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      history = JSON.parse(stored);
+      historyIndex = history.length;
     }
+  }
 
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
-    }
+  function write(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    terminal.appendChild(div);
+    scrollToBottom();
+  }
 
-    function render() {
-      const old = terminal.querySelector('.input-line');
-      if (old) old.remove();
-      const before = input.slice(0, cursorPos).join('');
-      const atCursor = input[cursorPos] || ' ';
-      const after = input.slice(cursorPos + 1).join('');
-      const span = document.createElement('span');
-      span.className = 'input-line';
-      span.innerHTML = `${prompt}${escapeHtml(before)}<span class="cursor">${escapeHtml(atCursor)}</span>${escapeHtml(after)}`;
-      terminal.insertBefore(span, sentinel);
-      scrollToBottom();
-    }
+  function scrollToBottom() {
+    terminal.scrollTop = terminal.scrollHeight;
+  }
 
-    function write(text) {
-      sentinel.insertAdjacentHTML('beforebegin', text);
-      scrollToBottom();
-    }
-
-    function saveHistory() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-    }
-
-    function loadHistory() {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        history = JSON.parse(stored);
-        historyIndex = history.length;
-      }
-    }
-
-    async function handle(cmd) {
-      const parts = cmd.trim().split(' ');
-      const c = parts[0].toLowerCase();
-
-      try {
-        if (c === 'clear') {
-          terminal.innerHTML = '';
-          terminal.appendChild(sentinel);
-        } else if (c === 'help') {
-          write('\nCommands: clear, help, swapbg [color] [url], platform, useragent, speak [text], echo [text], curl [url] [download true|false], save [filename] [text], date, github [owner] [repo], theme [default|aero|adult]\n');
-        } else if (c === 'swapbg') {
-          const color = parts[1], img = parts[2];
-          if (color) document.body.style.backgroundColor = color;
-          if (img) {
-            document.body.style.backgroundImage = `url(${img})`;
-            document.body.style.backgroundSize = 'cover';
-          }
-          write(`\nBG updated: ${color || ''} ${img || ''}\n`);
-        } else if (c === 'platform') {
-          write(`\n${navigator.platform}\n`);
-        } else if (c === 'useragent') {
-          write(`\n${navigator.userAgent}\n`);
-        } else if (c === 'speak') {
-          const msg = parts.slice(1).join(' ');
-          if (msg) {
-            speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
-            write(`\nSpeaking: ${msg}\n`);
-          } else write('\nUsage: speak [text]\n');
-        } else if (c === 'echo') {
-          write(`\n${parts.slice(1).join(' ')}\n`);
-        } else if (c === 'curl') {
-          const url = parts[1];
-          const download = parts[2] && parts[2].toLowerCase() === 'true';
-          if (url) {
-            try {
-              const res = await fetch(url);
-              const blob = await res.blob();
-              if (download) {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = url.split('/').pop() || 'download';
-                a.click();
-                URL.revokeObjectURL(a.href);
-                write(`\nDownloaded: ${a.download}\n`);
-              } else {
-                const text = await blob.text();
-                write(`\n${escapeHtml(text)}\n`);
-              }
-            } catch (err) {
-              write(`\nError: ${escapeHtml(err.toString())}\n`);
-            }
-          } else write('\nUsage: curl [url] [download true|false]\n');
-        } else if (c === 'save') {
-          const fileName = parts[1];
-          const text = parts.slice(2).join(' ');
-          if (fileName && text) {
-            const blob = new Blob([text], { type: 'text/plain' });
+  async function handle(cmd) {
+    const parts = cmd.trim().split(' ');
+    const c = parts[0].toLowerCase();
+    try {
+      if (c === 'clear') {
+        terminal.innerHTML = '';
+      } else if (c === 'help') {
+        write(`Commands:
+clear, help, swapbg [color] [url], platform, useragent, speak [text],
+echo [text], curl [url] [download true|false], save [filename] [text],
+date, github [owner] [repo], theme [default|aero|adult]`);
+      } else if (c === 'swapbg') {
+        const color = parts[1], img = parts[2];
+        if (color) document.body.style.backgroundColor = color;
+        if (img) {
+          document.body.style.backgroundImage = \`url(\${img})\`;
+          document.body.style.backgroundSize = 'cover';
+        }
+        write(\`BG updated: \${color || ''} \${img || ''}\`);
+      } else if (c === 'platform') {
+        write(navigator.platform);
+      } else if (c === 'useragent') {
+        write(navigator.userAgent);
+      } else if (c === 'speak') {
+        const msg = parts.slice(1).join(' ');
+        if (msg) {
+          speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
+          write(\`Speaking: \${msg}\`);
+        } else write('Usage: speak [text]');
+      } else if (c === 'echo') {
+        write(parts.slice(1).join(' '));
+      } else if (c === 'curl') {
+        const url = parts[1];
+        const download = parts[2]?.toLowerCase() === 'true';
+        if (url) {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          if (download) {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = fileName;
+            a.download = url.split('/').pop() || 'download';
             a.click();
             URL.revokeObjectURL(a.href);
-            write(`\nSaved file: ${fileName}\n`);
+            write(\`Downloaded: \${a.download}\`);
           } else {
-            write('\nUsage: save [filename] [text]\n');
+            const text = await blob.text();
+            write(text);
           }
-        } else if (c === 'date') {
-          write(`\n${new Date().toString()}\n`);
-        } else if (c === 'github') {
-          const owner = parts[1];
-          const repo = parts[2];
-          if (owner && repo) {
-            try {
-              const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-              if (!res.ok) throw new Error(`Repo not found or API error`);
-              const data = await res.json();
-              write(`\nName: ${data.full_name}\nDescription: ${data.description || 'No description'}\nStars: ${data.stargazers_count}\nForks: ${data.forks_count}\nURL: ${data.html_url}\n`);
-            } catch (err) {
-              write(`\nError: ${escapeHtml(err.toString())}\n`);
-            }
-          } else {
-            write('\nUsage: github [owner] [repo]\n');
-          }
-        } else if (c === 'theme') {
-          const theme = parts[1]?.toLowerCase();
-          if (theme === 'aero') {
-            terminal.style.background = 'rgba(255, 255, 255, 0.2)';
-            terminal.style.backdropFilter = 'blur(10px)';
-            terminal.style.textAlign = 'left';
-            terminal.style.color = 'white';
-            terminal.style.fontFamily = "'VGAFont', monospace";
-            document.body.style.background = '#000';
-            write('\nAero theme applied.\n');
-          } else if (theme === 'adult') {
-            terminal.style.background = 'black';
-            terminal.style.textAlign = 'center';
-            terminal.style.color = 'white';
-            document.body.style.background = 'black';
-            const link = document.createElement('link');
-            link.href = 'https://file.garden/Z3HtEpAjyGTEZiXW/HelveticaNeue-CondensedBold.ttf';
-            link.rel = 'stylesheet';
-            document.head.appendChild(link);
-            terminal.style.fontFamily = "'HelveticaNeue-CondensedBold', monospace";
-            write('\nAdult Swim theme applied.\n');
-          } else {
-            terminal.style.background = 'rgba(0, 0, 0, 0.5)';
-            terminal.style.backdropFilter = 'none';
-            terminal.style.textAlign = 'left';
-            terminal.style.color = 'white';
-            terminal.style.fontFamily = "'VGAFont', monospace";
-            document.body.style.background = '#000';
-            write('\nDefault theme applied.\n');
-          }
+        } else write('Usage: curl [url] [download true|false]');
+      } else if (c === 'save') {
+        const fileName = parts[1];
+        const text = parts.slice(2).join(' ');
+        if (fileName && text) {
+          const blob = new Blob([text], { type: 'text/plain' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = fileName;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          write(\`Saved file: \${fileName}\`);
         } else {
-          let r = eval(cmd);
-          if (r instanceof Promise) r = await r;
-          write(`\n${escapeHtml(String(r))}\n`);
+          write('Usage: save [filename] [text]');
         }
-      } catch (err) {
-        write(`\nError: ${escapeHtml(err.toString())}\n`);
+      } else if (c === 'date') {
+        write(new Date().toString());
+      } else if (c === 'github') {
+        const owner = parts[1];
+        const repo = parts[2];
+        if (owner && repo) {
+          const res = await fetch(\`https://api.github.com/repos/\${owner}/\${repo}\`);
+          if (!res.ok) throw new Error('Repo not found');
+          const data = await res.json();
+          write(\`Name: \${data.full_name}
+Description: \${data.description || 'No description'}
+Stars: \${data.stargazers_count}
+Forks: \${data.forks_count}
+URL: \${data.html_url}\`);
+        } else {
+          write('Usage: github [owner] [repo]');
+        }
+      } else if (c === 'theme') {
+        const theme = parts[1]?.toLowerCase();
+        if (theme === 'aero') {
+          terminal.style.background = 'rgba(255, 255, 255, 0.2)';
+          terminal.style.backdropFilter = 'blur(10px)';
+          terminal.style.textAlign = 'left';
+          terminal.style.color = 'white';
+          terminal.style.fontFamily = "'VGAFont', monospace";
+          document.body.style.background = '#000';
+          write('Aero theme applied.');
+        } else if (theme === 'adult') {
+          terminal.style.background = 'black';
+          terminal.style.textAlign = 'center';
+          terminal.style.color = 'white';
+          document.body.style.background = 'black';
+          if (!document.getElementById('adult-font-style')) {
+            const style = document.createElement('style');
+            style.id = 'adult-font-style';
+            style.textContent = \`@font-face {
+              font-family: 'AdultFont';
+              src: url('https://file.garden/Z3HtEpAjyGTEZiXW/HelveticaNeue-CondensedBold.ttf') format('truetype');
+            }\`;
+            document.head.appendChild(style);
+          }
+          terminal.style.fontFamily = "'AdultFont', monospace";
+          write('Adult Swim theme applied.');
+        } else {
+          terminal.style.background = 'rgba(0, 0, 0, 0.5)';
+          terminal.style.backdropFilter = 'none';
+          terminal.style.textAlign = 'left';
+          terminal.style.color = 'white';
+          terminal.style.fontFamily = "'VGAFont', monospace";
+          document.body.style.background = '#000';
+          write('Default theme applied.');
+        }
+      } else {
+        let r = eval(cmd);
+        if (r instanceof Promise) r = await r;
+        write(String(r));
       }
+    } catch (err) {
+      write(\`Error: \${err.toString()}\`);
     }
+  }
 
-    terminal.addEventListener('keydown', e => {
-      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-      if (e.key === 'Backspace') {
-        if (cursorPos > 0) { input.splice(cursorPos - 1, 1); cursorPos--; }
-      } else if (e.key === 'Delete') {
-        if (cursorPos < input.length) input.splice(cursorPos, 1);
-      } else if (e.key === 'ArrowLeft') {
-        if (cursorPos > 0) cursorPos--;
-      } else if (e.key === 'ArrowRight') {
-        if (cursorPos < input.length) cursorPos++;
-      } else if (e.key === 'ArrowUp') {
-        if (history.length) { historyIndex = Math.max(0, historyIndex - 1); input = history[historyIndex].split(''); cursorPos = input.length; }
-      } else if (e.key === 'ArrowDown') {
-        if (history.length) { historyIndex = Math.min(history.length, historyIndex + 1); input = historyIndex === history.length ? [] : history[historyIndex].split(''); cursorPos = input.length; }
-      } else if (e.key === 'Enter') {
-        const cmd = input.join('');
-        write(`\n${prompt}${escapeHtml(cmd)}\n`);
-        if (cmd.trim()) { history.push(cmd); saveHistory(); }
-        historyIndex = history.length;
-        handle(cmd);
-        input = []; cursorPos = 0;
-      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-        input.splice(cursorPos, 0, e.key);
-        cursorPos++;
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const cmd = input.value;
+      write(prompt + cmd);
+      if (cmd.trim()) {
+        history.push(cmd);
+        saveHistory();
       }
-      render();
-    });
-
-    terminal.addEventListener('paste', e => {
+      historyIndex = history.length;
+      handle(cmd);
+      input.value = '';
       e.preventDefault();
-      for (const c of e.clipboardData.getData('text')) {
-        input.splice(cursorPos, 0, c);
-        cursorPos++;
+    } else if (e.key === 'ArrowUp') {
+      if (history.length && historyIndex > 0) {
+        historyIndex--;
+        input.value = history[historyIndex];
+        setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
       }
-      render();
-    });
+      e.preventDefault();
+    } else if (e.key === 'ArrowDown') {
+      if (history.length && historyIndex < history.length - 1) {
+        historyIndex++;
+        input.value = history[historyIndex];
+      } else {
+        historyIndex = history.length;
+        input.value = '';
+      }
+      setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+      e.preventDefault();
+    }
+  });
 
-    terminal.addEventListener('mousedown', () => terminal.focus());
-    window.addEventListener('focus', () => setTimeout(() => terminal.focus(), 100));
+  terminal.addEventListener('wheel', e => {
+    e.preventDefault();
+  }, { passive: false });
 
-    window.onerror = () => {
-      terminal.innerHTML = '';
-      document.body.style.background = '#0000AA';
-      terminal.textContent = `
+  terminal.addEventListener('keydown', e => {
+    if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key)) {
+      e.preventDefault();
+    }
+  });
+
+  input.addEventListener('paste', e => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text');
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.value = input.value.slice(0, start) + text + input.value.slice(end);
+    input.selectionStart = input.selectionEnd = start + text.length;
+  });
+
+  window.onerror = () => {
+    terminal.innerHTML = '';
+    document.body.style.background = '#0000AA';
+    terminal.style.color = '#fff';
+    terminal.style.fontFamily = 'monospace';
+    terminal.style.textAlign = 'left';
+    terminal.textContent = `
 A problem has been detected and Windows has been shut down to prevent damage to your computer.
 
 ERROR_EXCEPTION_JAVA
@@ -280,12 +293,11 @@ Technical Information:
 
 Collecting data for crash dump ...
 Initializing disk for crash dump ...`;
-    };
+  };
 
-    loadHistory();
-    write('Custom Command Prompt\nType "help" for commands.\n\n');
-    render();
-    terminal.focus();
-  </script>
+  loadHistory();
+  write('Custom Command Prompt\nType "help" for commands.');
+  input.focus();
+</script>
 </body>
 </html>
