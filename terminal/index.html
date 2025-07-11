@@ -99,7 +99,9 @@
         write(`Commands:
 clear, help, swapbg [color] [url], platform, useragent, speak [text],
 echo [text], curl [url] [download true|false], save [filename] [text],
-date, github [owner] [repo], youtube [video_id], ai [text], theme [default|aero|adult]`);
+date, github [owner] [repo], youtube [video_id], ai [text],
+roblox [user <username>|group <groupId>|place <placeId>],
+theme [default|aero|adult]`);
       } else if (c === 'swapbg') {
         const color = parts[1];
         const img = parts.slice(2).join(' ');
@@ -204,6 +206,45 @@ ${data.html}`);
           }
         } else {
           write('Usage: ai [your text prompt]');
+        }
+      } else if (c === 'roblox') {
+        const type = parts[1];
+        if (type === 'user') {
+          const username = parts[2];
+          if (!username) return write('Usage: roblox user <username>');
+          const res = await fetch('https://users.roproxy.com/v1/usernames/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usernames: [username], excludeBannedUsers: false })
+          });
+          const data = await res.json();
+          if (data.data && data.data.length) {
+            const user = data.data[0];
+            write(`User: ${user.username}\nID: ${user.id}\nDisplayName: ${user.displayName}`);
+          } else {
+            write('User not found.');
+          }
+        } else if (type === 'group') {
+          const groupId = parts[2];
+          if (!groupId) return write('Usage: roblox group <groupId>');
+          const res = await fetch(`https://groups.roproxy.com/v1/groups/${groupId}`);
+          if (!res.ok) return write('Group not found.');
+          const data = await res.json();
+          write(`Group: ${data.name}\nID: ${data.id}\nDescription: ${data.description}\nOwner: ${data.owner?.displayName || 'N/A'}`);
+        } else if (type === 'place') {
+          const placeId = parts[2];
+          if (!placeId) return write('Usage: roblox place <placeId>');
+          const res = await fetch(`https://games.roproxy.com/v1/games/multiget-place-details?placeIds=${placeId}`);
+          if (!res.ok) return write('Place not found.');
+          const data = await res.json();
+          if (data && data.length) {
+            const place = data[0];
+            write(`Place: ${place.name}\nID: ${place.placeId}\nCreator: ${place.creatorName}\nPlaying: ${place.playing}\nVisits: ${place.visits}`);
+          } else {
+            write('Place not found.');
+          }
+        } else {
+          write('Usage: roblox [user <username> | group <groupId> | place <placeId>]');
         }
       } else if (c === 'theme') {
         const theme = parts[1]?.toLowerCase();
