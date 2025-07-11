@@ -101,7 +101,7 @@ clear, help, swapbg [color] [url], platform, useragent, speak [text],
 echo [text], curl [url] [download true|false], save [filename] [text],
 date, github [owner] [repo], youtube [video_id], ai [text],
 roblox [user <username>|group <groupId>|place <placeId>],
-theme [default|aero|adult]`);
+theme [default|aero|adult|slime], googlefont <Font+Name>`);
       } else if (c === 'swapbg') {
         const color = parts[1];
         const img = parts.slice(2).join(' ');
@@ -246,6 +246,15 @@ ${data.html}`);
         } else {
           write('Usage: roblox [user <username> | group <groupId> | place <placeId>]');
         }
+      } else if (c === 'googlefont') {
+        const fontName = parts.slice(1).join(' ');
+        if (!fontName) return write('Usage: googlefont <Font+Name>');
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${fontName}&display=swap`;
+        document.head.appendChild(link);
+        terminal.style.fontFamily = `'${fontName.replace(/\+/g, ' ')}', sans-serif`;
+        write(`Google Font applied: ${fontName}`);
       } else if (c === 'theme') {
         const theme = parts[1]?.toLowerCase();
         if (theme === 'aero') {
@@ -255,6 +264,7 @@ ${data.html}`);
           terminal.style.color = 'white';
           terminal.style.fontFamily = "'VGAFont', monospace";
           document.body.style.background = '#000';
+          document.body.style.backgroundImage = '';
           write('Aero theme applied.');
         } else if (theme === 'adult') {
           terminal.style.background = 'black';
@@ -272,6 +282,25 @@ ${data.html}`);
           }
           terminal.style.fontFamily = "'AdultFont', monospace";
           write('Adult Swim theme applied.');
+        } else if (theme === 'slime') {
+          terminal.style.background = 'rgba(255, 255, 255, 0.2)';
+          terminal.style.backdropFilter = 'blur(10px)';
+          terminal.style.textAlign = 'left';
+          terminal.style.color = 'white';
+          document.body.style.background = '#000';
+          document.body.style.backgroundImage = 'url("https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png")';
+          document.body.style.backgroundSize = 'cover';
+          if (!document.getElementById('slime-font-style')) {
+            const style = document.createElement('style');
+            style.id = 'slime-font-style';
+            style.textContent = `@font-face {
+              font-family: 'SlimeFont';
+              src: url('https://slimetube.github.io/droidsans.ttf') format('truetype');
+            }`;
+            document.head.appendChild(style);
+          }
+          terminal.style.fontFamily = "'SlimeFont', monospace";
+          write('Slime theme applied.');
         } else {
           terminal.style.background = 'rgba(0, 0, 0, 0.5)';
           terminal.style.backdropFilter = 'none';
@@ -279,6 +308,7 @@ ${data.html}`);
           terminal.style.color = 'white';
           terminal.style.fontFamily = "'VGAFont', monospace";
           document.body.style.background = '#000';
+          document.body.style.backgroundImage = '';
           write('Default theme applied.');
         }
       } else {
@@ -323,13 +353,8 @@ ${data.html}`);
     }
   });
 
-  terminal.addEventListener('wheel', e => {
-    e.preventDefault();
-  }, { passive: false });
-
-  window.addEventListener('scroll', () => {
-    window.scrollTo(0, 0);
-  });
+  terminal.addEventListener('wheel', e => e.preventDefault(), { passive: false });
+  window.addEventListener('scroll', () => window.scrollTo(0, 0));
 
   input.addEventListener('paste', e => {
     e.preventDefault();
