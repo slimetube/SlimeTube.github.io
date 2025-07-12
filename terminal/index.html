@@ -67,8 +67,11 @@ const STORAGE_KEY = 'cmd_history';
 const USERNAME_KEY = 'cmd_username';
 let username = localStorage.getItem(USERNAME_KEY) || 'Guest';
 
-// Blocked words include the hard R
-const blockedWords = ['nigga', 'rule34', 'nigger'];
+// Blocked words for username + dscrd
+const blockedWords = [
+  'nigger', 'asshole', 'fuck', 'shit', 'bitch', 'slut', 'cunt', 
+  'dick', 'pussy', 'cock', 'rape', 'porn', 'sex'
+];
 
 function saveHistory() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
@@ -82,6 +85,7 @@ function loadHistory() {
 }
 
 function write(text, color) {
+  if (text === undefined) return;
   const div = document.createElement('div');
   div.textContent = text;
   if (color) div.style.color = color;
@@ -108,11 +112,33 @@ async function handle(cmd) {
       terminal.innerHTML = '';
     } else if (c === 'help') {
       write(`Commands:
-clear, help, swapbg, platform, useragent, speak, echo, curl, save, date,
-github, youtube, ai, roblox, googlefont, dump, theme,
-username <name>, littlecaesars, pizz-zza`);
+clear, help, dump, username <name>, littlecaesars, pizz-zza, dscrd <msg>,
+roblox [group|place] <id>`);
+    } else if (c === 'dump') {
+      let all = '';
+      terminal.querySelectorAll('div').forEach(div => {
+        all += div.textContent + '\n';
+      });
+      const blob = new Blob([all], {type: 'text/plain'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'dump.pegx';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      write('Dump saved as dump.pegx');
+    } else if (c === 'username') {
+      const newName = parts.slice(1).join(' ');
+      if (!newName) return write('Usage: username <name>');
+      for (let word of blockedWords) {
+        if (newName.toLowerCase().includes(word)) {
+          return write('Username contains blocked words!');
+        }
+      }
+      username = newName;
+      localStorage.setItem(USERNAME_KEY, username);
+      write(`Username set to: ${username}`);
     } else if (c === 'littlecaesars' || c === 'pizz-zza') {
-      write(`Pizza Pizza!`);
+      write('Pizza Pizza!');
       const payload = {
         content: `Pizza Pizza! ${username} has activated the Little Caesars command on https://slimetube.github.io/terminal/`
       };
@@ -121,11 +147,25 @@ username <name>, littlecaesars, pizz-zza`);
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
       });
-      write(`Little Caesars command sent!`);
+      write('Little Caesars command sent!');
+    } else if (c === 'dscrd') {
+      const message = parts.slice(1).join(' ');
+      if (!message) return write('Usage: dscrd <message>');
+      for (let word of blockedWords) {
+        if (message.toLowerCase().includes(word)) {
+          return write('Message contains blocked words!');
+        }
+      }
+      await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ content: `[${username}]: ${message}` })
+      });
+      write('Message sent to Discord!');
     } else if (c === 'roblox') {
       const type = parts[1];
       const value = parts[2];
-      if (!type || !value) return write('Usage: roblox [user|group|place] <id>');
+      if (!type || !value) return write('Usage: roblox [group|place] <id>');
       if (type === 'group') {
         const res = await safeFetch(`https://groups.roproxy.com/v1/groups/${value}`);
         const data = await res.json();
@@ -146,22 +186,10 @@ Visits: ${g.visits}`);
       } else {
         write('Usage: roblox [group|place] <id>');
       }
-    } else if (c === 'username') {
-      const newName = parts.slice(1).join(' ');
-      if (!newName) return write('Usage: username <name>');
-      for (let word of blockedWords) {
-        if (newName.toLowerCase().includes(word)) {
-          return write('Username contains blocked words!');
-        }
-      }
-      username = newName;
-      localStorage.setItem(USERNAME_KEY, username);
-      write(`Username set to: ${username}`);
-    }
-    else {
+    } else {
       let r = eval(cmd);
       if (r instanceof Promise) r = await r;
-      write(String(r));
+      write(r);
     }
   } catch (err) {
     write(`Error: ${err.toString()}`);
