@@ -67,9 +67,9 @@ const STORAGE_KEY = 'cmd_history';
 const USERNAME_KEY = 'cmd_username';
 let username = localStorage.getItem(USERNAME_KEY) || 'Guest';
 
-// Blocked words for username + dscrd
+// Blocked words for username and dscrd
 const blockedWords = [
-  'nigger', 'asshole', 'fuck', 'shit', 'bitch', 'slut', 'cunt', 
+  'nigger', 'asshole', 'fuck', 'shit', 'bitch', 'slut', 'cunt',
   'dick', 'pussy', 'cock', 'rape', 'porn', 'sex'
 ];
 
@@ -159,7 +159,10 @@ roblox [group|place] <id>`);
       await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ content: `[${username}]: ${message}` })
+        body: JSON.stringify({
+          content: message,
+          username: username
+        })
       });
       write('Message sent to Discord!');
     } else if (c === 'roblox') {
