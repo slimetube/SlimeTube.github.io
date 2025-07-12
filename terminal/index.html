@@ -67,7 +67,8 @@ const STORAGE_KEY = 'cmd_history';
 const USERNAME_KEY = 'cmd_username';
 let username = localStorage.getItem(USERNAME_KEY) || 'Guest';
 
-const blockedWords = ['badword1', 'badword2'];
+// Blocked words include the hard R
+const blockedWords = ['nigga', 'rule34', 'nigger'];
 
 function saveHistory() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
@@ -107,165 +108,43 @@ async function handle(cmd) {
       terminal.innerHTML = '';
     } else if (c === 'help') {
       write(`Commands:
-clear, help, swapbg, platform, useragent, speak, echo, curl, save,
-date, github, youtube, ai, roblox, theme, googlefont, dump,
-username <name>, littlecaesars`);
-    } else if (c === 'swapbg') {
-      const color = parts[1];
-      const img = parts.slice(2).join(' ');
-      if (color) document.body.style.backgroundColor = color;
-      if (img) {
-        document.body.style.backgroundImage = 'url("' + img + '")';
-        document.body.style.backgroundSize = 'cover';
-      } else {
-        document.body.style.backgroundImage = '';
-      }
-      write(`BG updated: ${color || ''} ${img || ''}`);
-    } else if (c === 'platform') {
-      write(navigator.platform);
-    } else if (c === 'useragent') {
-      write(navigator.userAgent);
-    } else if (c === 'speak') {
-      const msg = parts.slice(1).join(' ');
-      if (msg) {
-        speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
-        write(`Speaking: ${msg}`);
-      } else write('Usage: speak [text]');
-    } else if (c === 'echo') {
-      write(parts.slice(1).join(' '));
-    } else if (c === 'curl') {
-      const url = parts[1];
-      const download = parts[2]?.toLowerCase() === 'true';
-      if (url) {
-        const res = await safeFetch(url);
-        const blob = await res.blob();
-        if (download) {
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = url.split('/').pop() || 'download';
-          a.click();
-          URL.revokeObjectURL(a.href);
-          write(`Downloaded: ${a.download}`);
-        } else {
-          const text = await blob.text();
-          write(text);
-        }
-      } else write('Usage: curl [url] [download true|false]');
-    } else if (c === 'save') {
-      const fileName = parts[1];
-      const text = parts.slice(2).join(' ');
-      if (fileName && text) {
-        const blob = new Blob([text], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        write(`Saved file: ${fileName}`);
-      } else {
-        write('Usage: save [filename] [text]');
-      }
-    } else if (c === 'date') {
-      write(new Date().toString());
-    } else if (c === 'github') {
-      const owner = parts[1];
-      const repo = parts[2];
-      if (owner && repo) {
-        const res = await safeFetch(`https://api.github.com/repos/${owner}/${repo}`);
-        const data = await res.json();
-        write(`Name: ${data.full_name}
-Description: ${data.description || 'No description'}
-Stars: ${data.stargazers_count}
-Forks: ${data.forks_count}
-URL: ${data.html_url}`);
-      } else {
-        write('Usage: github [owner] [repo]');
-      }
-    } else if (c === 'youtube') {
-      const videoId = parts[1];
-      if (videoId) {
-        const oEmbedRes = await safeFetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-        const data = await oEmbedRes.json();
-        write(`Title: ${data.title}
-Author: ${data.author_name}
-Embed HTML:
-${data.html}`);
-      } else {
-        write('Usage: youtube [video_id]');
-      }
-    } else if (c === 'ai') {
-      const promptText = parts.slice(1).join(' ');
-      if (promptText) {
-        const res = await safeFetch(`https://text.pollinations.ai/${encodeURIComponent(promptText)}?private=true&model=mistral`);
-        const data = await res.text();
-        write(`AI: ${data}`);
-      } else {
-        write('Usage: ai [your text prompt]');
-      }
+clear, help, swapbg, platform, useragent, speak, echo, curl, save, date,
+github, youtube, ai, roblox, googlefont, dump, theme,
+username <name>, littlecaesars, pizz-zza`);
+    } else if (c === 'littlecaesars' || c === 'pizz-zza') {
+      write(`Pizza Pizza!`);
+      const payload = {
+        content: `Pizza Pizza! ${username} has activated the Little Caesars command on https://slimetube.github.io/terminal/`
+      };
+      await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      write(`Little Caesars command sent!`);
     } else if (c === 'roblox') {
       const type = parts[1];
-      if (type === 'user') {
-        const username = parts[2];
-        if (!username) return write('Usage: roblox user <username>');
-        const res = await safeFetch('https://users.roproxy.com/v1/usernames/users');
+      const value = parts[2];
+      if (!type || !value) return write('Usage: roblox [user|group|place] <id>');
+      if (type === 'group') {
+        const res = await safeFetch(`https://groups.roproxy.com/v1/groups/${value}`);
         const data = await res.json();
-        write(JSON.stringify(data));
-      }
-      // Add your other Roblox subcommands here...
-    } else if (c === 'googlefont') {
-      const fontName = parts.slice(1).join(' ');
-      if (!fontName) return write('Usage: googlefont <Font+Name>');
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = `https://fonts.googleapis.com/css2?family=${fontName}&display=swap`;
-      document.head.appendChild(link);
-      terminal.style.fontFamily = `'${fontName.replace(/\+/g, ' ')}', sans-serif`;
-      write(`Google Font applied: ${fontName}`);
-    } else if (c === 'dump') {
-      const lines = [];
-      terminal.childNodes.forEach(node => {
-        if (node.textContent) lines.push(node.textContent);
-      });
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'terminal.pegx';
-      a.click();
-      URL.revokeObjectURL(a.href);
-      write('Dumped terminal to terminal.pegx');
-    } else if (c === 'theme') {
-      const theme = parts[1]?.toLowerCase();
-      if (theme === 'aero') {
-        terminal.style.background = 'rgba(255, 255, 255, 0.2)';
-        terminal.style.backdropFilter = 'blur(10px)';
-        terminal.style.color = 'white';
-        terminal.style.fontFamily = "'VGAFont', monospace";
-        document.body.style.background = '#000';
-        document.body.style.backgroundImage = '';
-        write('Aero theme applied.');
-      } else if (theme === 'adult') {
-        terminal.style.background = 'black';
-        terminal.style.textAlign = 'center';
-        terminal.style.color = 'white';
-        document.body.style.background = 'black';
-        terminal.style.fontFamily = "'AdultFont', monospace";
-        write('Adult theme applied.');
-      } else if (theme === 'slime') {
-        terminal.style.background = 'rgba(255, 255, 255, 0.2)';
-        terminal.style.backdropFilter = 'blur(10px)';
-        terminal.style.color = 'white';
-        document.body.style.backgroundImage = 'url("https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png")';
-        document.body.style.backgroundSize = 'cover';
-        terminal.style.fontFamily = "'SlimeFont', monospace";
-        write('Slime theme applied.');
+        write(`Group: ${data.name}
+Owner: ${data.owner ? data.owner.username : 'N/A'}
+Members: ${data.memberCount}`);
+      } else if (type === 'place') {
+        const res = await safeFetch(`https://games.roproxy.com/v1/games?universeIds=${value}`);
+        const data = await res.json();
+        if (data.data && data.data[0]) {
+          const g = data.data[0];
+          write(`Place: ${g.name}
+Creator: ${g.creator.name}
+Visits: ${g.visits}`);
+        } else {
+          write('Place not found.');
+        }
       } else {
-        terminal.style.background = 'rgba(0, 0, 0, 0.5)';
-        terminal.style.backdropFilter = 'none';
-        terminal.style.color = 'white';
-        terminal.style.fontFamily = "'VGAFont', monospace";
-        document.body.style.background = '#000';
-        document.body.style.backgroundImage = '';
-        write('Default theme applied.');
+        write('Usage: roblox [group|place] <id>');
       }
     } else if (c === 'username') {
       const newName = parts.slice(1).join(' ');
@@ -278,17 +157,8 @@ ${data.html}`);
       username = newName;
       localStorage.setItem(USERNAME_KEY, username);
       write(`Username set to: ${username}`);
-    } else if (c === 'littlecaesars') {
-      const payload = {
-        content: `Pizza Pizza! ${username} has activated the Little Caesars command on https://slimetube.github.io/terminal/`
-      };
-      await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-      write(`Little Caesars command sent!`);
-    } else {
+    }
+    else {
       let r = eval(cmd);
       if (r instanceof Promise) r = await r;
       write(String(r));
