@@ -60,47 +60,63 @@
 <script>
 const terminal = document.getElementById('terminal');
 const input = document.getElementById('input');
-const prompt = '> ';
 let history = [];
 let historyIndex = -1;
 const STORAGE_KEY = 'cmd_history';
 const USERNAME_KEY = 'cmd_username';
 let username = localStorage.getItem(USERNAME_KEY) || 'Guest';
 
-// Blocked words for username and dscrd
 const blockedWords = [
-  'nigger', 'asshole', 'fuck', 'shit', 'bitch', 'slut', 'cunt',
-  'dick', 'pussy', 'cock', 'rape', 'porn', 'sex'
+  'nigger','asshole','fuck','shit','bitch','slut','cunt',
+  'dick','pussy','cock','rape','porn','sex'
 ];
 
-function saveHistory() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+const nsfwDomains = [
+  'rule34', 'porn', 'sex', 'hentai', 'xxx', 'adult', 'erotic', 'fetish',
+  'xvideos', 'xhamster', 'youporn', 'redtube', 'spankbang', 'pornhub'
+];
+
+function isNsfwUrl(url) {
+  const lower = url.toLowerCase();
+  return nsfwDomains.some(domain => lower.includes(domain));
 }
-function loadHistory() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    history = JSON.parse(stored);
-    historyIndex = history.length;
+
+async function setWebhookPfp(url) {
+  if (!url) return write('Usage: webhookpfp <image_url>');
+  if (isNsfwUrl(url)) {
+    write('Blocked: NSFW or sexual image URLs are not allowed!', 'red');
+    return;
+  }
+  const payload = { avatar_url: url };
+  try {
+    await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    write('Webhook profile pictures updated!');
+  } catch {
+    write('Failed to update webhook profile pictures.', 'red');
   }
 }
 
-function write(text, color) {
-  if (text === undefined) return;
-  const div = document.createElement('div');
-  div.textContent = text;
-  if (color) div.style.color = color;
-  terminal.appendChild(div);
-  terminal.scrollTop = terminal.scrollHeight;
-}
+function saveHistory() { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); }
+function loadHistory() { const h = localStorage.getItem(STORAGE_KEY); if (h) { history = JSON.parse(h); historyIndex = history.length; } }
+function write(text, color) { if (text === undefined) return; const div = document.createElement('div'); div.textContent = text; if (color) div.style.color = color; terminal.appendChild(div); terminal.scrollTop = terminal.scrollHeight; }
 
 async function safeFetch(url) {
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error('Not OK');
     return res;
-  } catch (e) {
+  } catch {
     write(`${url} has failed to load because of a CORS error, terminating command.`, 'red');
-    throw e;
+    throw new Error('CORS');
   }
 }
 
@@ -111,162 +127,76 @@ async function handle(cmd) {
     if (c === 'clear') {
       terminal.innerHTML = '';
     } else if (c === 'help') {
-      write(`Commands:
-clear, help, dump, username <name>, littlecaesars, pizz-zza, dscrd <msg>,
-roblox [group|place] <id>`);
-    } else if (c === 'dump') {
-      let all = '';
-      terminal.querySelectorAll('div').forEach(div => {
-        all += div.textContent + '\n';
-      });
-      const blob = new Blob([all], {type: 'text/plain'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'dump.pegx';
-      a.click();
-      URL.revokeObjectURL(a.href);
-      write('Dump saved as dump.pegx');
-    } else if (c === 'username') {
-      const newName = parts.slice(1).join(' ');
-      if (!newName) return write('Usage: username <name>');
-      for (let word of blockedWords) {
-        if (newName.toLowerCase().includes(word)) {
-          return write('Username contains blocked words!');
-        }
+      write(`Commands: clear, help, echo, curl, swapbg, fontswap, theme, speak, platform, useragent, date, username <name>, littlecaesars/pizz-zza, dscrd <msg>, roblox [group|place] <id>, dump, ai <text>, youtube <url>, webhookpfp <url>`);
+    } else if (c === 'echo') {
+      write(parts.slice(1).join(' '));
+    } else if (c === 'curl') {
+      const url = parts[1]; if (!url) return write('Usage: curl <url>');
+      const res = await safeFetch(url); const text = await res.text();
+      write(text);
+    } else if (c === 'swapbg') {
+      const color = parts[1]; const img = parts[2];
+      document.body.style.backgroundColor = color || '';
+      document.body.style.backgroundImage = img ? `url(${img})` : '';
+    } else if (c === 'fontswap') {
+      const url = parts[1]; if (!url) return write('Usage: fontswap <url>');
+      const name = url.split('/').pop().split('.')[0];
+      const style = document.createElement('style');
+      style.textContent = `@font-face { font-family: '${name}'; src: url('${url}'); } body, input { font-family: '${name}', monospace; }`;
+      document.head.appendChild(style);
+      write(`Font set to ${name}`);
+    } else if (c === 'theme') {
+      const theme = parts[1];
+      if (theme === 'aero') {
+        document.body.style.backgroundColor = '#000'; terminal.style.background = 'rgba(0,0,0,0.5)';
+      } else if (theme === 'adult') {
+        document.body.style.backgroundColor = '#000'; document.body.style.color = '#fff'; terminal.style.textAlign = 'center';
+        const style = document.createElement('style');
+        style.textContent = `@font-face { font-family: 'HelveticaNeue'; src: url('https://file.garden/Z3HtEpAjyGTEZiXW/HelveticaNeue-CondensedBold.ttf'); } body,input { font-family: 'HelveticaNeue'; }`;
+        document.head.appendChild(style);
+      } else if (theme === 'slime') {
+        document.body.style.backgroundImage = 'url(https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png)';
+        const style = document.createElement('style');
+        style.textContent = `@font-face { font-family: 'DroidSans'; src: url('https://slimetube.github.io/droidsans.ttf'); } body,input { font-family: 'DroidSans'; }`;
+        document.head.appendChild(style);
       }
-      username = newName;
-      localStorage.setItem(USERNAME_KEY, username);
-      write(`Username set to: ${username}`);
+      write(`Theme ${theme} applied`);
+    } else if (c === 'speak') {
+      const text = parts.slice(1).join(' '); if (!text) return write('Usage: speak <text>');
+      const utterance = new SpeechSynthesisUtterance(text); speechSynthesis.speak(utterance);
+    } else if (c === 'platform') { write(navigator.platform); }
+    else if (c === 'useragent') { write(navigator.userAgent); }
+    else if (c === 'date') { write(new Date().toString()); }
+    else if (c === 'username') {
+      const newName = parts.slice(1).join(' ');
+      for (let word of blockedWords) if (newName.toLowerCase().includes(word)) return write('Username blocked!');
+      username = newName; localStorage.setItem(USERNAME_KEY, username); write(`Username set: ${username}`);
     } else if (c === 'littlecaesars' || c === 'pizz-zza') {
       write('Pizza Pizza!');
-      const payload = {
-        content: `Pizza Pizza! ${username} has activated the Little Caesars command on https://slimetube.github.io/terminal/`
-      };
-      await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-      write('Little Caesars command sent!');
+      await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:`Pizza Pizza! ${username} has activated Little Caesars on https://slimetube.github.io/terminal/`})});
     } else if (c === 'dscrd') {
       const message = parts.slice(1).join(' ');
-      if (!message) return write('Usage: dscrd <message>');
-      for (let word of blockedWords) {
-        if (message.toLowerCase().includes(word)) {
-          return write('Message contains blocked words!');
-        }
-      }
+      for (let word of blockedWords) if (message.toLowerCase().includes(word)) return write('Blocked words!');
       await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          content: message,
-          username: username
-        })
+        body: JSON.stringify({content:message, username:username})
       });
-      write('Message sent to Discord!');
-    } else if (c === 'roblox') {
-      const type = parts[1];
-      const value = parts[2];
-      if (!type || !value) return write('Usage: roblox [group|place] <id>');
-      if (type === 'group') {
-        const res = await safeFetch(`https://groups.roproxy.com/v1/groups/${value}`);
-        const data = await res.json();
-        write(`Group: ${data.name}
-Owner: ${data.owner ? data.owner.username : 'N/A'}
-Members: ${data.memberCount}`);
-      } else if (type === 'place') {
-        const res = await safeFetch(`https://games.roproxy.com/v1/games?universeIds=${value}`);
-        const data = await res.json();
-        if (data.data && data.data[0]) {
-          const g = data.data[0];
-          write(`Place: ${g.name}
-Creator: ${g.creator.name}
-Visits: ${g.visits}`);
-        } else {
-          write('Place not found.');
-        }
-      } else {
-        write('Usage: roblox [group|place] <id>');
-      }
+      write('Sent!');
+    } else if (c === 'webhookpfp') {
+      await setWebhookPfp(parts[1]);
     } else {
-      let r = eval(cmd);
-      if (r instanceof Promise) r = await r;
-      write(r);
+      write('Unknown command.');
     }
-  } catch (err) {
-    write(`Error: ${err.toString()}`);
-  }
+  } catch (err) { write(`Error: ${err}`); }
 }
 
-input.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    const cmd = input.value;
-    write(prompt + cmd);
-    if (cmd.trim()) {
-      history.push(cmd);
-      saveHistory();
-    }
-    historyIndex = history.length;
-    handle(cmd);
-    input.value = '';
-    e.preventDefault();
-  } else if (e.key === 'ArrowUp') {
-    if (history.length && historyIndex > 0) {
-      historyIndex--;
-      input.value = history[historyIndex];
-    }
-    e.preventDefault();
-  } else if (e.key === 'ArrowDown') {
-    if (history.length && historyIndex < history.length - 1) {
-      historyIndex++;
-      input.value = history[historyIndex];
-    } else {
-      historyIndex = history.length;
-      input.value = '';
-    }
-    e.preventDefault();
-  }
-});
-
-terminal.addEventListener('wheel', e => e.preventDefault(), { passive: false });
-window.addEventListener('scroll', () => window.scrollTo(0, 0));
-
-input.addEventListener('paste', e => {
-  e.preventDefault();
-  const text = e.clipboardData.getData('text');
-  const start = input.selectionStart;
-  const end = input.selectionEnd;
-  input.value = input.value.slice(0, start) + text + input.value.slice(end);
-  input.selectionStart = input.selectionEnd = start + text.length;
-});
-
-window.onerror = () => {
-  terminal.innerHTML = '';
-  document.body.style.background = '#0000AA';
-  terminal.style.color = '#fff';
-  terminal.textContent = `
-A problem has been detected and Windows has been shut down to prevent damage to your computer.
-
-ERROR_EXCEPTION_JAVA
-
-If this is the first time you've seen this error screen, restart your computer. If this screen appears again, follow these steps:
-
-Check to make sure any new hardware or software is properly installed. If this is a new installation, ask your hardware or software manufacturer for any Windows updates you might need.
-
-If problems continue, disable or remove any newly installed hardware or software. Disable BIOS memory options such as caching or shadowing. If you need to use Safe Mode to remove or disable components, restart your computer, press F8 to select Advanced Startup Options, and then select Safe Mode.
-
-Technical Information:
-
-*** STOP: 0x000000ED (0x80F128D0, 0x0000009c, 0x00000000, 0x0000000)
-
-Collecting data for crash dump ...
-Initializing disk for crash dump ...`;
-};
-
-loadHistory();
-write(`Welcome ${username}! Type "help" for commands.`);
-input.focus();
+input.addEventListener('keydown', e => { if (e.key==='Enter'){const c=input.value;write('> '+c);history.push(c);saveHistory();historyIndex=history.length;handle(c);input.value='';} if(e.key==='ArrowUp'){if(history.length&&historyIndex>0){historyIndex--;input.value=history[historyIndex];}} if(e.key==='ArrowDown'){if(history.length&&historyIndex<history.length-1){historyIndex++;input.value=history[historyIndex];}else{historyIndex=history.length;input.value='';}} });
+terminal.addEventListener('wheel', e => e.preventDefault(), { passive:false });
+window.addEventListener('scroll',()=>window.scrollTo(0,0));
+input.addEventListener('paste',e=>{e.preventDefault();const t=e.clipboardData.getData('text');const s=input.selectionStart;input.value=input.value.slice(0,s)+t+input.value.slice(input.selectionEnd);input.selectionStart=input.selectionEnd=s+t.length;});
+window.onerror=()=>{terminal.innerHTML='';document.body.style.background='#00F';terminal.style.color='#FFF';terminal.textContent=`A problem has been detected and Windows has been shut down to prevent damage to your computer.\n\nERROR_EXCEPTION_JAVA\n\n*** STOP: 0x000000ED ...\nCollecting data for crash dump ...\nInitializing disk for crash dump ...`;};
+loadHistory(); write(`Welcome ${username}! Type "help" for commands.`); input.focus();
 </script>
 </body>
 </html>
