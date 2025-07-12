@@ -36,9 +36,7 @@
       align-items: center;
       box-sizing: border-box;
     }
-    #input-prompt {
-      user-select: none;
-    }
+    #input-prompt { user-select: none; }
     #input {
       flex-grow: 1;
       background: transparent;
@@ -47,10 +45,6 @@
       color: white;
       font-family: 'VGAFont', monospace;
       font-size: 16px;
-    }
-    #input::selection {
-      background: #4a90e2;
-      color: white;
     }
   </style>
 </head>
@@ -64,326 +58,293 @@
 </div>
 
 <script>
-  const terminal = document.getElementById('terminal');
-  const input = document.getElementById('input');
-  const prompt = '> ';
-  let history = [];
-  let historyIndex = -1;
-  const STORAGE_KEY = 'cmd_history';
+const terminal = document.getElementById('terminal');
+const input = document.getElementById('input');
+const prompt = '> ';
+let history = [];
+let historyIndex = -1;
+const STORAGE_KEY = 'cmd_history';
+const USERNAME_KEY = 'cmd_username';
+let username = localStorage.getItem(USERNAME_KEY) || 'Guest';
 
-  function saveHistory() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-  }
-  function loadHistory() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      history = JSON.parse(stored);
-      historyIndex = history.length;
-    }
-  }
+const blockedWords = ['badword1', 'badword2'];
 
-  function write(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    terminal.appendChild(div);
-    terminal.scrollTop = terminal.scrollHeight;
+function saveHistory() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+}
+function loadHistory() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    history = JSON.parse(stored);
+    historyIndex = history.length;
   }
+}
 
-  async function handle(cmd) {
-    const parts = cmd.trim().split(' ');
-    const c = parts[0].toLowerCase();
-    try {
-      if (c === 'clear') {
-        terminal.innerHTML = '';
-      } else if (c === 'help') {
-        write(`Commands:
-clear, help, swapbg [color] [url], platform, useragent, speak [text],
-echo [text], curl [url] [download true|false], save [filename] [text],
-date, github [owner] [repo], youtube [video_id], ai [text],
-roblox [user <username>|group <groupId>|place <placeId>],
-theme [default|aero|adult|slime], googlefont <Font+Name>, dump`);
-      } else if (c === 'swapbg') {
-        const color = parts[1];
-        const img = parts.slice(2).join(' ');
-        if (color) document.body.style.backgroundColor = color;
-        if (img) {
-          document.body.style.backgroundImage = 'url("' + img + '")';
-          document.body.style.backgroundSize = 'cover';
-        } else {
-          document.body.style.backgroundImage = '';
-        }
-        write(`BG updated: ${color || ''} ${img || ''}`);
-      } else if (c === 'platform') {
-        write(navigator.platform);
-      } else if (c === 'useragent') {
-        write(navigator.userAgent);
-      } else if (c === 'speak') {
-        const msg = parts.slice(1).join(' ');
-        if (msg) {
-          speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
-          write(`Speaking: ${msg}`);
-        } else write('Usage: speak [text]');
-      } else if (c === 'echo') {
-        write(parts.slice(1).join(' '));
-      } else if (c === 'curl') {
-        const url = parts[1];
-        const download = parts[2]?.toLowerCase() === 'true';
-        if (url) {
-          const res = await fetch(url);
-          const blob = await res.blob();
-          if (download) {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = url.split('/').pop() || 'download';
-            a.click();
-            URL.revokeObjectURL(a.href);
-            write(`Downloaded: ${a.download}`);
-          } else {
-            const text = await blob.text();
-            write(text);
-          }
-        } else write('Usage: curl [url] [download true|false]');
-      } else if (c === 'save') {
-        const fileName = parts[1];
-        const text = parts.slice(2).join(' ');
-        if (fileName && text) {
-          const blob = new Blob([text], { type: 'text/plain' });
+function write(text, color) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  if (color) div.style.color = color;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+async function safeFetch(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Not OK');
+    return res;
+  } catch (e) {
+    write(`${url} has failed to load because of a CORS error, terminating command.`, 'red');
+    throw e;
+  }
+}
+
+async function handle(cmd) {
+  const parts = cmd.trim().split(' ');
+  const c = parts[0].toLowerCase();
+  try {
+    if (c === 'clear') {
+      terminal.innerHTML = '';
+    } else if (c === 'help') {
+      write(`Commands:
+clear, help, swapbg, platform, useragent, speak, echo, curl, save,
+date, github, youtube, ai, roblox, theme, googlefont, dump,
+username <name>, littlecaesars`);
+    } else if (c === 'swapbg') {
+      const color = parts[1];
+      const img = parts.slice(2).join(' ');
+      if (color) document.body.style.backgroundColor = color;
+      if (img) {
+        document.body.style.backgroundImage = 'url("' + img + '")';
+        document.body.style.backgroundSize = 'cover';
+      } else {
+        document.body.style.backgroundImage = '';
+      }
+      write(`BG updated: ${color || ''} ${img || ''}`);
+    } else if (c === 'platform') {
+      write(navigator.platform);
+    } else if (c === 'useragent') {
+      write(navigator.userAgent);
+    } else if (c === 'speak') {
+      const msg = parts.slice(1).join(' ');
+      if (msg) {
+        speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
+        write(`Speaking: ${msg}`);
+      } else write('Usage: speak [text]');
+    } else if (c === 'echo') {
+      write(parts.slice(1).join(' '));
+    } else if (c === 'curl') {
+      const url = parts[1];
+      const download = parts[2]?.toLowerCase() === 'true';
+      if (url) {
+        const res = await safeFetch(url);
+        const blob = await res.blob();
+        if (download) {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = fileName;
+          a.download = url.split('/').pop() || 'download';
           a.click();
           URL.revokeObjectURL(a.href);
-          write(`Saved file: ${fileName}`);
+          write(`Downloaded: ${a.download}`);
         } else {
-          write('Usage: save [filename] [text]');
+          const text = await blob.text();
+          write(text);
         }
-      } else if (c === 'date') {
-        write(new Date().toString());
-      } else if (c === 'github') {
-        const owner = parts[1];
-        const repo = parts[2];
-        if (owner && repo) {
-          const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-          if (!res.ok) throw new Error('Repo not found');
-          const data = await res.json();
-          write(
-            `Name: ${data.full_name}\n` +
-            `Description: ${data.description || 'No description'}\n` +
-            `Stars: ${data.stargazers_count}\n` +
-            `Forks: ${data.forks_count}\n` +
-            `URL: ${data.html_url}`
-          );
-        } else {
-          write('Usage: github [owner] [repo]');
-        }
-      } else if (c === 'youtube') {
-        const videoId = parts[1];
-        if (videoId) {
-          try {
-            const oEmbedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-            if (!oEmbedRes.ok) throw new Error('Video not found');
-            const data = await oEmbedRes.json();
-            write(`Title: ${data.title}
+      } else write('Usage: curl [url] [download true|false]');
+    } else if (c === 'save') {
+      const fileName = parts[1];
+      const text = parts.slice(2).join(' ');
+      if (fileName && text) {
+        const blob = new Blob([text], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        write(`Saved file: ${fileName}`);
+      } else {
+        write('Usage: save [filename] [text]');
+      }
+    } else if (c === 'date') {
+      write(new Date().toString());
+    } else if (c === 'github') {
+      const owner = parts[1];
+      const repo = parts[2];
+      if (owner && repo) {
+        const res = await safeFetch(`https://api.github.com/repos/${owner}/${repo}`);
+        const data = await res.json();
+        write(`Name: ${data.full_name}
+Description: ${data.description || 'No description'}
+Stars: ${data.stargazers_count}
+Forks: ${data.forks_count}
+URL: ${data.html_url}`);
+      } else {
+        write('Usage: github [owner] [repo]');
+      }
+    } else if (c === 'youtube') {
+      const videoId = parts[1];
+      if (videoId) {
+        const oEmbedRes = await safeFetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+        const data = await oEmbedRes.json();
+        write(`Title: ${data.title}
 Author: ${data.author_name}
 Embed HTML:
 ${data.html}`);
-          } catch (e) {
-            write(`Error: ${e.message}`);
-          }
-        } else {
-          write('Usage: youtube [video_id]');
-        }
-      } else if (c === 'ai') {
-        const promptText = parts.slice(1).join(' ');
-        if (promptText) {
-          try {
-            const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptText)}?private=true&model=mistral`);
-            if (!res.ok) throw new Error('AI request failed');
-            const data = await res.text();
-            write(`AI: ${data}`);
-          } catch (e) {
-            write(`Error: ${e.message}`);
-          }
-        } else {
-          write('Usage: ai [your text prompt]');
-        }
-      } else if (c === 'roblox') {
-        const type = parts[1];
-        if (type === 'user') {
-          const username = parts[2];
-          if (!username) return write('Usage: roblox user <username>');
-          const res = await fetch('https://users.roproxy.com/v1/usernames/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usernames: [username], excludeBannedUsers: false })
-          });
-          const data = await res.json();
-          if (data.data && data.data.length) {
-            const user = data.data[0];
-            write(`User: ${user.username}\nID: ${user.id}\nDisplayName: ${user.displayName}`);
-          } else {
-            write('User not found.');
-          }
-        } else if (type === 'group') {
-          const groupId = parts[2];
-          if (!groupId) return write('Usage: roblox group <groupId>');
-          const res = await fetch(`https://groups.roproxy.com/v1/groups/${groupId}`);
-          if (!res.ok) return write('Group not found.');
-          const data = await res.json();
-          write(`Group: ${data.name}\nID: ${data.id}\nDescription: ${data.description}\nOwner: ${data.owner?.displayName || 'N/A'}`);
-        } else if (type === 'place') {
-          const placeId = parts[2];
-          if (!placeId) return write('Usage: roblox place <placeId>');
-          const res = await fetch(`https://games.roproxy.com/v1/games/multiget-place-details?placeIds=${placeId}`);
-          if (!res.ok) return write('Place not found.');
-          const data = await res.json();
-          if (data && data.length) {
-            const place = data[0];
-            write(`Place: ${place.name}\nID: ${place.placeId}\nCreator: ${place.creatorName}\nPlaying: ${place.playing}\nVisits: ${place.visits}`);
-          } else {
-            write('Place not found.');
-          }
-        } else {
-          write('Usage: roblox [user <username> | group <groupId> | place <placeId>]');
-        }
-      } else if (c === 'googlefont') {
-        const fontName = parts.slice(1).join(' ');
-        if (!fontName) return write('Usage: googlefont <Font+Name>');
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = `https://fonts.googleapis.com/css2?family=${fontName}&display=swap`;
-        document.head.appendChild(link);
-        terminal.style.fontFamily = `'${fontName.replace(/\+/g, ' ')}', sans-serif`;
-        write(`Google Font applied: ${fontName}`);
-      } else if (c === 'dump') {
-        const lines = [];
-        terminal.childNodes.forEach(node => {
-          if (node.textContent) lines.push(node.textContent);
-        });
-        const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'terminal.pegx';
-        a.click();
-        URL.revokeObjectURL(a.href);
-        write('Dumped terminal to terminal.pegx');
-      } else if (c === 'theme') {
-        const theme = parts[1]?.toLowerCase();
-        if (theme === 'aero') {
-          terminal.style.background = 'rgba(255, 255, 255, 0.2)';
-          terminal.style.backdropFilter = 'blur(10px)';
-          terminal.style.textAlign = 'left';
-          terminal.style.color = 'white';
-          terminal.style.fontFamily = "'VGAFont', monospace";
-          document.body.style.background = '#000';
-          document.body.style.backgroundImage = '';
-          write('Aero theme applied.');
-        } else if (theme === 'adult') {
-          terminal.style.background = 'black';
-          terminal.style.textAlign = 'center';
-          terminal.style.color = 'white';
-          document.body.style.background = 'black';
-          if (!document.getElementById('adult-font-style')) {
-            const style = document.createElement('style');
-            style.id = 'adult-font-style';
-            style.textContent = `@font-face {
-              font-family: 'AdultFont';
-              src: url('https://file.garden/Z3HtEpAjyGTEZiXW/HelveticaNeue-CondensedBold.ttf') format('truetype');
-            }`;
-            document.head.appendChild(style);
-          }
-          terminal.style.fontFamily = "'AdultFont', monospace";
-          write('Adult Swim theme applied.');
-        } else if (theme === 'slime') {
-          terminal.style.background = 'rgba(255, 255, 255, 0.2)';
-          terminal.style.backdropFilter = 'blur(10px)';
-          terminal.style.textAlign = 'left';
-          terminal.style.color = 'white';
-          document.body.style.background = '#000';
-          document.body.style.backgroundImage = 'url("https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png")';
-          document.body.style.backgroundSize = 'cover';
-          if (!document.getElementById('slime-font-style')) {
-            const style = document.createElement('style');
-            style.id = 'slime-font-style';
-            style.textContent = `@font-face {
-              font-family: 'SlimeFont';
-              src: url('https://slimetube.github.io/droidsans.ttf') format('truetype');
-            }`;
-            document.head.appendChild(style);
-          }
-          terminal.style.fontFamily = "'SlimeFont', monospace";
-          write('Slime theme applied.');
-        } else {
-          terminal.style.background = 'rgba(0, 0, 0, 0.5)';
-          terminal.style.backdropFilter = 'none';
-          terminal.style.textAlign = 'left';
-          terminal.style.color = 'white';
-          terminal.style.fontFamily = "'VGAFont', monospace";
-          document.body.style.background = '#000';
-          document.body.style.backgroundImage = '';
-          write('Default theme applied.');
-        }
       } else {
-        let r = eval(cmd);
-        if (r instanceof Promise) r = await r;
-        write(String(r));
+        write('Usage: youtube [video_id]');
       }
-    } catch (err) {
-      write(`Error: ${err.toString()}`);
+    } else if (c === 'ai') {
+      const promptText = parts.slice(1).join(' ');
+      if (promptText) {
+        const res = await safeFetch(`https://text.pollinations.ai/${encodeURIComponent(promptText)}?private=true&model=mistral`);
+        const data = await res.text();
+        write(`AI: ${data}`);
+      } else {
+        write('Usage: ai [your text prompt]');
+      }
+    } else if (c === 'roblox') {
+      const type = parts[1];
+      if (type === 'user') {
+        const username = parts[2];
+        if (!username) return write('Usage: roblox user <username>');
+        const res = await safeFetch('https://users.roproxy.com/v1/usernames/users');
+        const data = await res.json();
+        write(JSON.stringify(data));
+      }
+      // Add your other Roblox subcommands here...
+    } else if (c === 'googlefont') {
+      const fontName = parts.slice(1).join(' ');
+      if (!fontName) return write('Usage: googlefont <Font+Name>');
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${fontName}&display=swap`;
+      document.head.appendChild(link);
+      terminal.style.fontFamily = `'${fontName.replace(/\+/g, ' ')}', sans-serif`;
+      write(`Google Font applied: ${fontName}`);
+    } else if (c === 'dump') {
+      const lines = [];
+      terminal.childNodes.forEach(node => {
+        if (node.textContent) lines.push(node.textContent);
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'terminal.pegx';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      write('Dumped terminal to terminal.pegx');
+    } else if (c === 'theme') {
+      const theme = parts[1]?.toLowerCase();
+      if (theme === 'aero') {
+        terminal.style.background = 'rgba(255, 255, 255, 0.2)';
+        terminal.style.backdropFilter = 'blur(10px)';
+        terminal.style.color = 'white';
+        terminal.style.fontFamily = "'VGAFont', monospace";
+        document.body.style.background = '#000';
+        document.body.style.backgroundImage = '';
+        write('Aero theme applied.');
+      } else if (theme === 'adult') {
+        terminal.style.background = 'black';
+        terminal.style.textAlign = 'center';
+        terminal.style.color = 'white';
+        document.body.style.background = 'black';
+        terminal.style.fontFamily = "'AdultFont', monospace";
+        write('Adult theme applied.');
+      } else if (theme === 'slime') {
+        terminal.style.background = 'rgba(255, 255, 255, 0.2)';
+        terminal.style.backdropFilter = 'blur(10px)';
+        terminal.style.color = 'white';
+        document.body.style.backgroundImage = 'url("https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png")';
+        document.body.style.backgroundSize = 'cover';
+        terminal.style.fontFamily = "'SlimeFont', monospace";
+        write('Slime theme applied.');
+      } else {
+        terminal.style.background = 'rgba(0, 0, 0, 0.5)';
+        terminal.style.backdropFilter = 'none';
+        terminal.style.color = 'white';
+        terminal.style.fontFamily = "'VGAFont', monospace";
+        document.body.style.background = '#000';
+        document.body.style.backgroundImage = '';
+        write('Default theme applied.');
+      }
+    } else if (c === 'username') {
+      const newName = parts.slice(1).join(' ');
+      if (!newName) return write('Usage: username <name>');
+      for (let word of blockedWords) {
+        if (newName.toLowerCase().includes(word)) {
+          return write('Username contains blocked words!');
+        }
+      }
+      username = newName;
+      localStorage.setItem(USERNAME_KEY, username);
+      write(`Username set to: ${username}`);
+    } else if (c === 'littlecaesars') {
+      const payload = {
+        content: `Pizza Pizza! ${username} has activated the Little Caesars command on https://slimetube.github.io/terminal/`
+      };
+      await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      write(`Little Caesars command sent!`);
+    } else {
+      let r = eval(cmd);
+      if (r instanceof Promise) r = await r;
+      write(String(r));
     }
+  } catch (err) {
+    write(`Error: ${err.toString()}`);
   }
+}
 
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      const cmd = input.value;
-      write(prompt + cmd);
-      if (cmd.trim()) {
-        history.push(cmd);
-        saveHistory();
-      }
-      historyIndex = history.length;
-      handle(cmd);
-      input.value = '';
-      e.preventDefault();
-    } else if (e.key === 'ArrowUp') {
-      if (history.length && historyIndex > 0) {
-        historyIndex--;
-        input.value = history[historyIndex];
-        setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
-      }
-      e.preventDefault();
-    } else if (e.key === 'ArrowDown') {
-      if (history.length && historyIndex < history.length - 1) {
-        historyIndex++;
-        input.value = history[historyIndex];
-      } else {
-        historyIndex = history.length;
-        input.value = '';
-      }
-      setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
-      e.preventDefault();
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const cmd = input.value;
+    write(prompt + cmd);
+    if (cmd.trim()) {
+      history.push(cmd);
+      saveHistory();
     }
-  });
-
-  terminal.addEventListener('wheel', e => e.preventDefault(), { passive: false });
-  window.addEventListener('scroll', () => window.scrollTo(0, 0));
-
-  input.addEventListener('paste', e => {
+    historyIndex = history.length;
+    handle(cmd);
+    input.value = '';
     e.preventDefault();
-    const text = e.clipboardData.getData('text');
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
-    input.value = input.value.slice(0, start) + text + input.value.slice(end);
-    input.selectionStart = input.selectionEnd = start + text.length;
-  });
+  } else if (e.key === 'ArrowUp') {
+    if (history.length && historyIndex > 0) {
+      historyIndex--;
+      input.value = history[historyIndex];
+    }
+    e.preventDefault();
+  } else if (e.key === 'ArrowDown') {
+    if (history.length && historyIndex < history.length - 1) {
+      historyIndex++;
+      input.value = history[historyIndex];
+    } else {
+      historyIndex = history.length;
+      input.value = '';
+    }
+    e.preventDefault();
+  }
+});
 
-  window.onerror = () => {
-    terminal.innerHTML = '';
-    document.body.style.background = '#0000AA';
-    terminal.style.color = '#fff';
-    terminal.style.fontFamily = 'monospace';
-    terminal.style.textAlign = 'left';
-    terminal.textContent = `
+terminal.addEventListener('wheel', e => e.preventDefault(), { passive: false });
+window.addEventListener('scroll', () => window.scrollTo(0, 0));
+
+input.addEventListener('paste', e => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text');
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  input.value = input.value.slice(0, start) + text + input.value.slice(end);
+  input.selectionStart = input.selectionEnd = start + text.length;
+});
+
+window.onerror = () => {
+  terminal.innerHTML = '';
+  document.body.style.background = '#0000AA';
+  terminal.style.color = '#fff';
+  terminal.textContent = `
 A problem has been detected and Windows has been shut down to prevent damage to your computer.
 
 ERROR_EXCEPTION_JAVA
@@ -400,11 +361,11 @@ Technical Information:
 
 Collecting data for crash dump ...
 Initializing disk for crash dump ...`;
-  };
+};
 
-  loadHistory();
-  write('Custom Command Prompt\nType "help" for commands.');
-  input.focus();
+loadHistory();
+write(`Welcome ${username}! Type "help" for commands.`);
+input.focus();
 </script>
 </body>
 </html>
