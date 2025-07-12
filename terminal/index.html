@@ -5,43 +5,36 @@
   <title>Command Prompt</title>
   <style>
     @font-face {
-      font-family: 'VGAFont';
+      font-family: VGAFont;
       src: url('https://SlimeTube.github.io/vga.ttf') format('truetype');
     }
     html, body {
       margin: 0; padding: 0; height: 100%;
-      background: #000;
+      background: #000; color: white;
       font-family: 'VGAFont', monospace;
-      color: white;
       overflow: hidden;
     }
     #container {
       height: 100vh;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
     }
     #terminal {
-      flex-grow: 1;
-      overflow-y: auto;
-      padding: 20px;
-      white-space: pre-wrap;
+      flex: 1; padding: 20px;
       background: rgba(0,0,0,0.5);
+      white-space: pre-wrap;
+      overflow-y: auto;
     }
     #input-container {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
+      position: fixed; bottom: 0; left: 0; right: 0;
       background: rgba(0,0,0,0.5);
       padding: 10px 20px;
-      display: flex;
-      align-items: center;
-      box-sizing: border-box;
+      display: flex; align-items: center;
     }
     #input-prompt { user-select: none; }
     #input {
-      flex-grow: 1;
+      flex: 1;
       background: transparent;
-      border: none;
-      outline: none;
+      border: none; outline: none;
       color: white;
       font-family: 'VGAFont', monospace;
       font-size: 16px;
@@ -54,182 +47,161 @@
 </div>
 <div id="input-container">
   <span id="input-prompt">&gt; </span>
-  <input id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
+  <input id="input" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
 </div>
-
 <script>
 const terminal = document.getElementById('terminal');
 const input = document.getElementById('input');
-let history = [];
-let historyIndex = -1;
+
 const STORAGE_KEY = 'cmd_history';
 const USERNAME_KEY = 'cmd_username';
+const PFP_KEY = 'cmd_pfp';
+
+let history = [], historyIndex = -1;
 let username = localStorage.getItem(USERNAME_KEY) || 'Guest';
+let customPfpUrl = localStorage.getItem(PFP_KEY) || 'https://i.imgur.com/D299rno.gif';
 
-const blockedWords = [
-  'nigger', 'nigga','asshole','fuck','shit','bitch','slut','cunt',
-  'dick','pussy','cock','rape','porn','sex','anus'
-];
+const blockedWords = ['nigger','asshole','fuck','shit','bitch','slut','cunt','dick','pussy','cock','rape','porn','sex'];
+const nsfwDomains = ['rule34','porn','sex','hentai','xxx','adult','erotic','fetish','xvideos','xhamster','youporn','redtube','spankbang','pornhub'];
+const rainbowColors = ["red","orange","yellow","green","blue","indigo","violet"];
 
-const nsfwDomains = [
-  'rule34', 'porn', 'sex', 'hentai', 'xxx', 'adult', 'erotic', 'fetish',
-  'xvideos', 'xhamster', 'youporn', 'redtube', 'spankbang', 'pornhub'
-];
+function saveHistory(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(history)) }
+function loadHistory(){ const h=localStorage.getItem(STORAGE_KEY); if(h){history=JSON.parse(h); historyIndex=history.length;} }
+function write(text, color){
+  if(text===undefined) return;
+  const div = document.createElement('div');
+  div.innerHTML = text;
+  if(color) div.style.color = color;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+function isNsfwUrl(url){ const l=url.toLowerCase(); return nsfwDomains.some(d=>l.includes(d)); }
 
-let customPfpUrl = '';
-
-function isNsfwUrl(url) {
-  const lower = url.toLowerCase();
-  return nsfwDomains.some(domain => lower.includes(domain));
+async function patchWebhookPfp(url){
+  try {
+    await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({avatar_url:url})});
+    await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({avatar_url:url})});
+  } catch { write('Failed to patch webhook PFP.', 'red'); }
 }
 
-async function setWebhookPfp(url) {
-  if (!url) {
-    url = 'https://i.imgur.com/D299rno.gif';
-    customPfpUrl = '';
-    write('No URL provided, setting to default PFP.');
+async function setWebhookPfp(url){
+  if(!url){
+    customPfpUrl = 'https://i.imgur.com/D299rno.gif';
+    write('Reset to default PFP.');
   } else {
-    if (isNsfwUrl(url)) {
-      write('Blocked: NSFW or sexual image URLs are not allowed!', 'red');
-      return;
-    }
+    if(isNsfwUrl(url)) return write('Blocked NSFW/sexual URL!', 'red');
     customPfpUrl = url;
+    write(`Custom PFP: ${url}`);
   }
-  const payload = { avatar_url: url };
-  try {
-    await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    write(`Webhook profile picture set to: ${url}`);
-  } catch {
-    write('Failed to update webhook profile pictures.', 'red');
-  }
+  localStorage.setItem(PFP_KEY, customPfpUrl);
+  await patchWebhookPfp(customPfpUrl);
 }
 
-function saveHistory() { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); }
-function loadHistory() { const h = localStorage.getItem(STORAGE_KEY); if (h) { history = JSON.parse(h); historyIndex = history.length; } }
-function write(text, color) { if (text === undefined) return; const div = document.createElement('div'); div.innerHTML = text; if (color) div.style.color = color; terminal.appendChild(div); terminal.scrollTop = terminal.scrollHeight; }
-
-async function safeFetch(url) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Not OK');
-    return res;
-  } catch {
-    write(`${url} has failed to load because of a CORS error, terminating command.`, 'red');
-    throw new Error('CORS');
-  }
+async function safeFetch(url){
+  try { const r = await fetch(url); if(!r.ok) throw 'Not OK'; return r; }
+  catch { write(`${url} has failed to load because of a CORS error, terminating command.`, 'red'); throw ''; }
 }
 
-const rainbowColors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"];
-
-async function handle(cmd) {
+async function handle(cmd){
   const parts = cmd.trim().split(' ');
-  const c = parts[0].toLowerCase();
+  const c = parts[0]?.toLowerCase();
   try {
-    if (c === 'clear') {
-      terminal.innerHTML = '';
-    } else if (c === 'help') {
-      write(`Commands: clear, help, echo, curl, swapbg, fontswap, theme, speak, platform, useragent, date, username <name>, littlecaesars/pizz-zza, dscrd <msg>, webhookpfp <url>, dump, bart`);
-    } else if (c === 'echo') {
-      write(parts.slice(1).join(' '));
-    } else if (c === 'curl') {
-      const url = parts[1]; if (!url) return write('Usage: curl <url>');
-      const res = await safeFetch(url); const text = await res.text();
-      write(text);
-    } else if (c === 'swapbg') {
-      const color = parts[1]; const img = parts[2];
-      document.body.style.backgroundColor = color || '';
-      document.body.style.backgroundImage = img ? `url(${img})` : '';
-    } else if (c === 'fontswap') {
-      const url = parts[1]; if (!url) return write('Usage: fontswap <url>');
+    if(c==='clear'){ terminal.innerHTML=''; }
+    else if(c==='help'){ write(`Commands: clear, help, echo, curl, swapbg, fontswap, theme, speak, platform, useragent, date, username, littlecaesars/pizz-zza, dscrd, webhookpfp, dump, bart, ai, roblox user/group/place <id>, yt <url>`); }
+    else if(c==='echo'){ write(parts.slice(1).join(' ')); }
+    else if(c==='curl'){
+      const url = parts[1]; if(!url) return write('Usage: curl <url>');
+      const r = await safeFetch(url); const t = await r.text(); write(t);
+    } else if(c==='swapbg'){
+      document.body.style.backgroundColor = parts[1]||'';
+      document.body.style.backgroundImage = parts[2]?`url(${parts[2]})`:'';
+    } else if(c==='fontswap'){
+      const url = parts[1]; if(!url) return write('Usage: fontswap <url>');
       const name = url.split('/').pop().split('.')[0];
-      const style = document.createElement('style');
-      style.textContent = `@font-face { font-family: '${name}'; src: url('${url}'); } body, input { font-family: '${name}', monospace; }`;
-      document.head.appendChild(style);
-      write(`Font set to ${name}`);
-    } else if (c === 'theme') {
-      const theme = parts[1];
-      if (theme === 'aero') {
-        document.body.style.backgroundColor = '#000'; terminal.style.background = 'rgba(0,0,0,0.5)';
-      } else if (theme === 'adult') {
-        document.body.style.backgroundColor = '#000'; document.body.style.color = '#fff'; terminal.style.textAlign = 'center';
-        const style = document.createElement('style');
-        style.textContent = `@font-face { font-family: 'HelveticaNeue'; src: url('https://file.garden/Z3HtEpAjyGTEZiXW/HelveticaNeue-CondensedBold.ttf'); } body,input { font-family: 'HelveticaNeue'; }`;
-        document.head.appendChild(style);
-      } else if (theme === 'slime') {
-        document.body.style.backgroundImage = 'url(https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png)';
-        const style = document.createElement('style');
-        style.textContent = `@font-face { font-family: 'DroidSans'; src: url('https://slimetube.github.io/droidsans.ttf'); } body,input { font-family: 'DroidSans'; }`;
-        document.head.appendChild(style);
+      const st = document.createElement('style');
+      st.textContent=`@font-face{font-family:'${name}';src:url('${url}')}body,input{font-family:'${name}',monospace}`;
+      document.head.appendChild(st);
+      write(`Font: ${name}`);
+    } else if(c==='theme'){
+      const th = parts[1];
+      if(th==='aero'){ document.body.style.backgroundColor='#000'; terminal.style.background='rgba(0,0,0,0.5)'; }
+      else if(th==='adult'){
+        document.body.style.backgroundColor='#000'; document.body.style.color='#fff';
+        terminal.style.textAlign='center';
+        const st = document.createElement('style');
+        st.textContent=`@font-face{font-family:'HelveticaNeue';src:url('https://file.garden/Z3HtEpAjyGTEZiXW/HelveticaNeue-CondensedBold.ttf')}body,input{font-family:'HelveticaNeue'}`;
+        document.head.appendChild(st);
+      } else if(th==='slime'){
+        document.body.style.backgroundImage='url(https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png)';
+        const st = document.createElement('style');
+        st.textContent=`@font-face{font-family:'DroidSans';src:url('https://slimetube.github.io/droidsans.ttf')}body,input{font-family:'DroidSans'}`;
+        document.head.appendChild(st);
       }
-      write(`Theme ${theme} applied`);
-    } else if (c === 'speak') {
-      const text = parts.slice(1).join(' '); if (!text) return write('Usage: speak <text>');
-      const utterance = new SpeechSynthesisUtterance(text); speechSynthesis.speak(utterance);
-    } else if (c === 'platform') { write(navigator.platform); }
-    else if (c === 'useragent') { write(navigator.userAgent); }
-    else if (c === 'date') { write(new Date().toString()); }
-    else if (c === 'username') {
-      const newName = parts.slice(1).join(' ');
-      for (let word of blockedWords) if (newName.toLowerCase().includes(word)) return write('Username blocked!');
-      username = newName; localStorage.setItem(USERNAME_KEY, username); write(`Username set: ${username}`);
-    } else if (c === 'littlecaesars' || c === 'pizz-zza') {
+      write(`Theme: ${th}`);
+    } else if(c==='speak'){ const t = parts.slice(1).join(' '); if(!t) return; speechSynthesis.speak(new SpeechSynthesisUtterance(t)); }
+    else if(c==='platform'){ write(navigator.platform); }
+    else if(c==='useragent'){ write(navigator.userAgent); }
+    else if(c==='date'){ write(new Date().toString()); }
+    else if(c==='username'){
+      const n = parts.slice(1).join(' ');
+      if(blockedWords.some(w=>n.toLowerCase().includes(w))) return write('Blocked word!');
+      username=n; localStorage.setItem(USERNAME_KEY,n); write(`Username: ${n}`);
+    } else if(c==='littlecaesars'||c==='pizz-zza'){
       write('Pizza Pizza!');
-      await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:`Pizza Pizza! ${username} has activated Little Caesars on https://slimetube.github.io/terminal/`})});
-    } else if (c === 'dscrd') {
-      const message = parts.slice(1).join(' ');
-      for (let word of blockedWords) if (message.toLowerCase().includes(word)) return write('Blocked words!');
-      await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({content:message, username:username})
-      });
+      await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:`Pizza Pizza! ${username} has activated Little Caesars on https://slimetube.github.io/terminal/`,username,avatar_url:customPfpUrl})});
+    } else if(c==='dscrd'){
+      const msg = parts.slice(1).join(' ');
+      if(blockedWords.some(w=>msg.toLowerCase().includes(w))) return write('Blocked!');
+      await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:msg,username,avatar_url:customPfpUrl})});
       write('Sent!');
-    } else if (c === 'webhookpfp') {
-      await setWebhookPfp(parts[1]);
-    } else if (c === 'dump') {
-      const allText = Array.from(terminal.children).map(el => el.textContent).join('\n');
-      const blob = new Blob([allText], { type: 'text/plain' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'dump.pegx';
-      a.click();
-      write('Dump saved as dump.pegx');
-    } else if (c === 'bart') {
-      const text = "Eat my shorts!";
-      const div = document.createElement('div');
-      let html = "";
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const color = rainbowColors[i % rainbowColors.length];
-        html += `<span style="color:${color}">${char}</span>`;
-      }
-      div.innerHTML = html;
-      terminal.appendChild(div);
-      terminal.scrollTop = terminal.scrollHeight;
-    } else {
-      write('Unknown command.');
-    }
-  } catch (err) { write(`Error: ${err}`); }
+    } else if(c==='webhookpfp'){ await setWebhookPfp(parts[1]); }
+    else if(c==='dump'){
+      const text=Array.from(terminal.children).map(el=>el.textContent).join('\n');
+      const blob=new Blob([text],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dump.pegx'; a.click(); write('Dump saved.');
+    } else if(c==='bart'){
+      const text="Eat my shorts!", div=document.createElement('div');
+      div.innerHTML=[...text].map((l,i)=>`<span style="color:${rainbowColors[i%rainbowColors.length]}">${l}</span>`).join('');
+      terminal.appendChild(div); terminal.scrollTop = terminal.scrollHeight;
+    } else if(c==='ai'){
+      const text = parts.slice(1).join(' ');
+      const r = await safeFetch(`https://text.pollinations.ai/${encodeURIComponent(text)}&private=true&model=mistral`);
+      write(await r.text());
+    } else if(c==='roblox'){
+      const type = parts[1], id = parts[2]; if(!type||!id) return write('roblox user/group/place <id>');
+      let url, data; if(type==='user') url=`https://users.roproxy.com/v1/users/${id}`;
+      else if(type==='group') url=`https://groups.roproxy.com/v1/groups/${id}`;
+      else if(type==='place') url=`https://games.roproxy.com/v1/games?universeIds=${id}`;
+      else return write('Invalid roblox type.');
+      const r = await safeFetch(url); data = await r.json();
+      write(JSON.stringify(data,null,2));
+    } else if(c==='yt'){
+      const yt = parts[1]; if(!yt) return write('yt <url>');
+      const r = await safeFetch(`https://www.youtube.com/oembed?url=${yt}&format=json`); const j = await r.json();
+      write(`Title: ${j.title}\nAuthor: ${j.author_name}`);
+    } else { write('Unknown command.'); }
+  } catch(e){ if(e) write(`Error: ${e}`); }
 }
 
-input.addEventListener('keydown', e => { if (e.key==='Enter'){const c=input.value;write('> '+c);history.push(c);saveHistory();historyIndex=history.length;handle(c);input.value='';} if(e.key==='ArrowUp'){if(history.length&&historyIndex>0){historyIndex--;input.value=history[historyIndex];}} if(e.key==='ArrowDown'){if(history.length&&historyIndex<history.length-1){historyIndex++;input.value=history[historyIndex];}else{historyIndex=history.length;input.value='';}} });
-terminal.addEventListener('wheel', e => e.preventDefault(), { passive:false });
-window.addEventListener('scroll',()=>window.scrollTo(0,0));
-input.addEventListener('paste',e=>{e.preventDefault();const t=e.clipboardData.getData('text');const s=input.selectionStart;input.value=input.value.slice(0,s)+t+input.value.slice(input.selectionEnd);input.selectionStart=input.selectionEnd=s+t.length;});
-window.onerror=()=>{terminal.innerHTML='';document.body.style.background='#00F';terminal.style.color='#FFF';terminal.textContent=`A problem has been detected and Windows has been shut down to prevent damage to your computer.\n\nERROR_EXCEPTION_JAVA\n\n*** STOP: 0x000000ED ...\nCollecting data for crash dump ...\nInitializing disk for crash dump ...`;};
-loadHistory(); write(`Welcome ${username}! Type "help" for commands.`); input.focus();
+input.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ const v=input.value.trim(); write(`> ${v}`); if(v){ history.push(v); saveHistory(); historyIndex=history.length; } handle(v); input.value=''; e.preventDefault(); }
+  if(e.key==='ArrowUp'){ if(historyIndex>0){ input.value=history[--historyIndex]; } e.preventDefault(); }
+  if(e.key==='ArrowDown'){ if(historyIndex<history.length-1){ input.value=history[++historyIndex]; } else { historyIndex=history.length; input.value=''; } e.preventDefault(); }
+});
 
-// Ensure default PFP is always set on load
-if (!customPfpUrl) { setWebhookPfp(''); }
+terminal.addEventListener('wheel', e=>e.preventDefault(), {passive:false});
+window.addEventListener('scroll', ()=>window.scrollTo(0,0));
+
+input.addEventListener('paste', e=>{
+  e.preventDefault();
+  const text = e.clipboardData.getData('text');
+  const s = input.selectionStart;
+  input.value = input.value.slice(0,s)+text+input.value.slice(input.selectionEnd);
+  input.selectionStart = input.selectionEnd = s+text.length;
+});
+
+window.onerror=()=>{ terminal.innerHTML=''; document.body.style.background='#00F'; terminal.style.color='#FFF'; terminal.textContent=`A problem has been detected and Windows has been shut down to prevent damage to your computer.\n\nERROR_EXCEPTION_JAVA\n\n*** STOP: 0x000000ED ...\nCollecting data for crash dump ...\nInitializing disk for crash dump ...`; };
+
+loadHistory(); write(`Welcome ${username}! Type "help" for commands.`); input.focus();
 </script>
 </body>
 </html>
