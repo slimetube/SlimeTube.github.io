@@ -1,4 +1,8 @@
-
+---
+title: "Command Prompt"
+date: 2025-07-16T00:00:00Z
+draft: false
+---
 
 <!DOCTYPE html>
 <html lang="en">
@@ -58,13 +62,7 @@
 </head>
 <body>
   <noscript>
-    <div style="
-      background: #111;
-      color: #f00;
-      padding: 20px;
-      font-family: monospace;
-      text-align: center;
-    ">
+    <div style="background:#111;color:#f00;padding:20px;font-family:monospace;text-align:center;">
       ⚠️ JavaScript is disabled. This command prompt will not work!
     </div>
   </noscript>
@@ -93,10 +91,10 @@ const defaultUsernames = ["bubble app", "Hold Up", "SillyBilly1234", "iCarlyFan5
 let username = localStorage.getItem('cmd_username') || defaultUsernames[Math.floor(Math.random() * defaultUsernames.length)];
 const pfps = [
   'https://i.imgur.com/D299rno.gif',
-  'https://SlimeTube.github.io/src/carly.webp',
-  'https://SlimeTube.github.io/src/sam.webp',
-  'https://SlimeTube.github.io/src/fred.webp',
-  'https://SlimeTube.github.io/src/spen.webp'
+  'https://slimetube.github.io/src/carly.webp',
+  'https://slimetube.github.io/src/sam.webp',
+  'https://slimetube.github.io/src/fred.webp',
+  'https://slimetube.github.io/src/spen.webp'
 ];
 let pfp = localStorage.getItem('cmd_pfp') || pfps[Math.floor(Math.random() * pfps.length)];
 localStorage.setItem('cmd_pfp', pfp);
@@ -157,7 +155,7 @@ async function sendVeeGreeting() {
     body: JSON.stringify({
       content: `Vee has greeted ${username}`,
       username: 'Vee',
-      avatar_url: 'https://SlimeTube.github.io/src/vee.webp'
+      avatar_url: 'https://slimetube.github.io/src/vee.webp'
     })
   });
 }
@@ -172,10 +170,7 @@ async function runCommand(cmd, piped = '') {
     write(`Commands:
 clear, help, echo, curl, download, swapbg, fontswap, theme, speak,
 platform, useragent, date, username, webhookpfp, dump, bart,
-ai, open, littlecaesars, pizz-zza, dscrd, weather, ghls
-
-ghls usage: ghls owner/repo [path]
-Example: ghls slimetube/slimetube.github.io src`);
+ai, open, littlecaesars, pizz-zza, dscrd, weather, ghls`);
   }
   else if (base === 'echo') {
     out = escapeHtml(parts.slice(1).join(' ') || piped);
