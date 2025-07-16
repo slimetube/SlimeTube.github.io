@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,11 +18,11 @@
       background: #222; color: #0f0; padding: 5px 10px; font-size: 12px;
     }
     #terminal {
-      height: calc(100vh - 40px);
+      height: 100vh;
+      padding: 10px 10px 60px;
+      box-sizing: border-box;
       overflow-y: auto;
       white-space: pre-wrap;
-      padding: 10px;
-      box-sizing: border-box;
     }
     #input-container {
       position: fixed; bottom: 0; left: 0; right: 0;
@@ -37,39 +36,40 @@
       color: white; font-family: 'VGA', monospace; font-size: 16px;
     }
     #username-viewer {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      color: #0f0;
-      background: #222;
-      padding: 5px 10px;
-      font-family: 'VGA', monospace;
-      font-size: 14px;
-      border-radius: 4px;
-      user-select: none;
-      z-index: 1100;
+      position: fixed; bottom: 10px; right: 10px;
+      color: #0f0; background: #222; padding: 5px 10px;
+      font-family: 'VGA', monospace; font-size: 14px;
+      border-radius: 4px; user-select: none; z-index: 1100;
     }
     @font-face {
       font-family: 'VGA';
       src: url('https://slimetube.github.io/vga.ttf');
     }
+    noscript {
+      color: red;
+      background: black;
+      display: block;
+      padding: 20px;
+      font-family: sans-serif;
+    }
   </style>
 </head>
 <body>
+  <noscript>⚠ JavaScript is required to use this terminal.</noscript>
   <div id="indicator"></div>
   <div id="terminal"></div>
   <div id="input-container">
     <span id="input-prompt">&gt;</span>
     <input id="input" autofocus spellcheck="false" />
   </div>
-  <div id="username-viewer" title="Current Username"></div>
+  <div id="username-viewer"></div>
 <script>
 const terminal = document.getElementById('terminal');
 const input = document.getElementById('input');
 const indicator = document.getElementById('indicator');
 const usernameViewer = document.getElementById('username-viewer');
 
-const blockedWords = ['nigger','asshole','fuck','shit','bitch','slut','cunt','porn','sex'];
+const blockedWords = ['nigger','nigga','faggot','retard','asshole','fuck','shit','bitch','slut','cunt','porn','sex'];
 const blockedDomains = ['cdn.discordapp.com','rule34','porn','hentai','xxx','adult'];
 const rainbowColors = ['red','orange','yellow','green','blue','indigo','violet'];
 
@@ -82,11 +82,7 @@ const defaultPfps = [
   'https://slimetube.github.io/src/vee.webp'
 ];
 
-// Pick random default username and pfp if not set
-let username = localStorage.getItem('cmd_username') || (() => {
-  const names = ["bubble app", "Hold Up", "SillyBilly1234", "iCarlyFan5465", "Vee"];
-  return names[Math.floor(Math.random() * names.length)];
-})();
+let username = localStorage.getItem('cmd_username') || "bubble app";
 let pfp = localStorage.getItem('cmd_pfp') || defaultPfps[Math.floor(Math.random() * defaultPfps.length)];
 
 const history = JSON.parse(localStorage.getItem('cmd_history') || '[]');
@@ -106,6 +102,10 @@ function write(text, color) {
   terminal.scrollTop = terminal.scrollHeight;
 }
 
+function updateUsernameViewer() {
+  usernameViewer.textContent = `User: ${username}`;
+}
+
 async function safeFetch(url) {
   for (let domain of blockedDomains) {
     if (url.includes(domain)) {
@@ -118,7 +118,7 @@ async function safeFetch(url) {
     if (!r.ok) throw 'Failed';
     return r;
   } catch {
-    write(`${url} has failed to load because of a CORS error, terminating command.`, 'red');
+    write(`${url} failed due to CORS.`, 'red');
     throw '';
   }
 }
@@ -130,127 +130,30 @@ async function runCommand(cmd, piped = '') {
 
   if (base === 'clear') {
     terminal.innerHTML = '';
-  }
-  else if (base === 'help') {
+  } else if (base === 'help') {
     write(`Commands:
-clear, help, echo, curl, download, swapbg, fontswap, theme, speak, 
+clear, help, echo, curl, swapbg, fontswap, theme, speak, 
 platform, useragent, date, username, webhookpfp, dump, bart, 
-ai, open, littlecaesars, pizz-zza, dscrd, pfp, ghls, weather, music, stop`);
-  }
-  else if (base === 'echo') {
+ai, open, littlecaesars, pizz-zza, dscrd, pfp, unixtime`);
+  } else if (base === 'echo') {
     out = escapeHtml(parts.slice(1).join(' ') || piped);
     write(out);
-  }
-  else if (base === 'curl') {
+  } else if (base === 'curl') {
     const url = parts[1];
     if (!url) return write('Usage: curl <url>');
     const r = await safeFetch(url);
     out = escapeHtml(await r.text());
     write(out);
-  }
-  else if (base === 'download') {
-    const url = parts[1];
-    if (!url) return write('Usage: download <url>');
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '';
-    a.click();
-    write(`Started download from ${url}`);
-  }
-  else if (base === 'swapbg') {
-    document.body.style.backgroundColor = parts[1] || '#000';
-    document.body.style.backgroundImage = parts[2] ? `url(${parts[2]})` : '';
-    document.body.style.backgroundSize = '100% 100%';
-    write(`Background updated`);
-  }
-  else if (base === 'fontswap') {
-    const url = parts[1];
-    if (!url) return write('Usage: fontswap <url>');
-    const name = url.split('/').pop().split('.')[0];
-    const style = document.createElement('style');
-    style.textContent = `@font-face{font-family:'${name}';src:url('${url}')}body,input{font-family:'${name}'}`;
-    document.head.appendChild(style);
-    write(`Font changed to ${name}`);
-  }
-  else if (base === 'theme') {
-    const th = parts[1];
-    if (th==='aero') {
-      document.body.style.background = '#000';
-      document.body.style.backgroundImage = '';
-      document.body.style.color = '#fff';
-      document.body.style.textAlign = 'left';
-    }
-    if (th==='adult') {
-      document.body.style.background = '#000';
-      document.body.style.color = '#fff';
-      document.body.style.textAlign = 'center';
-    }
-    if (th==='slime') {
-      document.body.style.backgroundImage = 'url(https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png)';
-      document.body.style.backgroundSize = '100% 100%';
-      const st = document.createElement('style');
-      st.textContent = `@font-face{font-family:'DroidSans';src:url('https://slimetube.github.io/droidsans.ttf')}body,input{font-family:'DroidSans'}`;
-      document.head.appendChild(st);
-    }
-    write(`Theme ${th} applied`);
-  }
-  else if (base === 'speak') {
-    const t = parts.slice(1).join(' ') || piped;
-    if (t) speechSynthesis.speak(new SpeechSynthesisUtterance(t));
-  }
-  else if (base === 'platform') {
-    write(navigator.platform);
-  }
-  else if (base === 'useragent') {
-    write(navigator.userAgent);
-  }
-  else if (base === 'date') {
-    write(new Date().toString());
-  }
-  else if (base === 'username') {
-    const newName = parts.slice(1).join(' ');
-    if (blockedWords.some(w => newName.toLowerCase().includes(w))) return write('Blocked word!');
-    username = newName;
-    localStorage.setItem('cmd_username', username);
-    updateUsernameViewer();
-    write(`Username set to ${username}`);
-  }
-  else if (base === 'webhookpfp') {
-    const url = parts[1];
-    if (blockedDomains.some(d => url.includes(d))) return write('Blocked domain!', 'red');
-    pfp = url || defaultPfps[Math.floor(Math.random() * defaultPfps.length)];
-    localStorage.setItem('cmd_pfp', pfp);
-    write(`Webhook PFP updated: ${pfp}`);
-  }
-  else if (base === 'pfp') {
-    write(`Current PFP: ${pfp}`);
-  }
-  else if (base === 'dump') {
-    const all = Array.from(terminal.children).map(e => e.textContent.replace(/^> /, '')).join('\n');
-    const blob = new Blob([all], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'dump.pegx';
-    a.click();
-    write('Dump saved.');
-  }
-  else if (base === 'bart') {
-    const text = "Eat my shorts!";
-    const div = document.createElement('div');
-    div.innerHTML = [...text].map((l, i) =>
-      `<span style="color:${rainbowColors[i % rainbowColors.length]}">${l}</span>`
-    ).join('');
-    terminal.appendChild(div);
-    terminal.scrollTop = terminal.scrollHeight;
-  }
-  else if (base === 'ai') {
-    const q = parts.slice(1).join(' ');
-    if (!q) return write('Usage: ai <prompt>');
-    const r = await safeFetch(`https://text.pollinations.ai/${encodeURIComponent(q)}`);
-    const t = await r.text();
-    write(t);
-  }
-  else if (base === 'littlecaesars' || base === 'pizz-zza') {
+  } else if (base === 'dscrd') {
+    const msg = parts.slice(1).join(' ') || piped;
+    if (blockedWords.some(w => msg.toLowerCase().includes(w))) return write('Blocked!');
+    await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ content: msg, username: username, avatar_url: pfp })
+    });
+    write('Sent!');
+  } else if (base === 'littlecaesars' || base === 'pizz-zza') {
     write('Pizza Pizza!');
     await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
       method: 'POST',
@@ -261,136 +164,36 @@ ai, open, littlecaesars, pizz-zza, dscrd, pfp, ghls, weather, music, stop`);
         avatar_url: pfp
       })
     });
-  }
-  else if (base === 'dscrd') {
-    const msg = parts.slice(1).join(' ');
-    if (!msg) return write('Usage: dscrd <message>');
-    if (blockedWords.some(w => msg.toLowerCase().includes(w))) return write('Blocked!');
-    await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ content: msg, username: username, avatar_url: pfp })
-    });
-    write('Sent!');
-  }
-  else if (base === 'open') {
-    const url = parts[1] || piped;
-    if (!url) return write('Usage: open <url>');
-    window.open(url, '_blank', 'width=800,height=600,resizable=yes');
-    write(`Opened ${url}`);
-  }
-  else if (base === 'ghls') {
-    const repo = parts[1];
-    const path = parts.slice(2).join('/');
-    if (!repo || !repo.includes('/')) return write('Usage: ghls owner/repo [path]');
-    const url = `https://api.github.com/repos/${repo}/contents/${path || ''}`;
-    try {
-      const r = await safeFetch(url);
-      const files = await r.json();
-      if (Array.isArray(files)) {
-        files.forEach(f => {
-          write(`${f.type === 'dir' ? '[DIR]' : '[FILE]'} ${f.name}`);
-        });
-      } else {
-        write(`File: ${files.name} - Size: ${files.size} bytes`);
-      }
-    } catch (err) {
-      write(`GitHub error: ${err}`);
-    }
-  }
-  else if (base === 'weather') {
-    const city = parts.slice(1).join(' ');
-    if (!city) return write('Usage: weather <city>');
-    try {
-      // Use wttr.in for no API key weather
-      const r = await safeFetch(`https://wttr.in/${encodeURIComponent(city)}?format=3`);
-      const text = await r.text();
-      write(text);
-    } catch {
-      write('Failed to fetch weather.');
-    }
-  }
-  else if (base === 'music') {
-    if (parts[1] && parts[1].toLowerCase() !== 'stop') {
-      const url = parts[1];
-      if (!url) return write('Usage: music <audio_file_url> or music stop');
-      if (window.currentAudio) {
-        window.currentAudio.pause();
-        window.currentAudio = null;
-      }
-      const audio = new Audio(url);
-      audio.loop = true;
-      audio.play();
-      window.currentAudio = audio;
-      write(`Playing music from ${url} on loop.`);
-    } else if (parts[1] && parts[1].toLowerCase() === 'stop') {
-      if (window.currentAudio) {
-        window.currentAudio.pause();
-        window.currentAudio = null;
-        write('Music stopped.');
-      } else {
-        write('No music is playing.');
-      }
+  } else if (base === 'unixtime') {
+    const num = Number(parts[1]);
+    if (isNaN(num)) {
+      write('Usage: unixtime <number>');
     } else {
-      write('Usage: music <audio_file_url> or music stop');
+      const d = new Date(num * 1000);
+      write(`${num} => ${d.toUTCString()} | ${d.toString()}`);
     }
-  }
-  else {
+  } else {
     write('Unknown command');
   }
   return out;
 }
 
 async function handle(cmd) {
-  const parts = cmd.split('|').map(p => p.trim());
-  let piped = '';
-  for (let p of parts) {
-    piped = await runCommand(p, piped);
-  }
+  write(`> ${escapeHtml(cmd)}`);
+  await runCommand(cmd);
 }
 
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     const cmd = input.value.trim();
-    if (!cmd) return;
-    write(`> ${escapeHtml(cmd)}`);
-    history.push(cmd); localStorage.setItem('cmd_history', JSON.stringify(history));
-    handle(cmd); input.value = '';
+    history.push(cmd);
+    localStorage.setItem('cmd_history', JSON.stringify(history));
+    handle(cmd);
+    input.value = '';
     historyIndex = history.length;
   }
-  else if (e.key === 'ArrowUp') {
-    if (historyIndex > 0) { input.value = history[--historyIndex]; }
-    e.preventDefault();
-  }
-  else if (e.key === 'ArrowDown') {
-    if (historyIndex < history.length - 1) { input.value = history[++historyIndex]; }
-    else { input.value = ''; historyIndex = history.length; }
-    e.preventDefault();
-  }
 });
-window.addEventListener('scroll', () => window.scrollTo(0, 0));
-window.addEventListener('wheel', e => e.preventDefault(), { passive: false });
-window.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-
-window.onerror = () => {
-  terminal.innerHTML = '';
-  document.body.style.background = '#00F';
-  terminal.style.color = '#FFF';
-  terminal.textContent = `A problem has been detected and Windows has been shut down to prevent damage to your computer.\n\nERROR_EXCEPTION_JAVA\n\n*** STOP: 0x000000ED ...\nCollecting data for crash dump ...\nInitializing disk for crash dump ...`;
-};
-
-function updateUsernameViewer() {
-  usernameViewer.textContent = `User: ${username}`;
-}
 updateUsernameViewer();
-
-const params = new URLSearchParams(window.location.search);
-if (params.has('cmd')) {
-  const c = decodeURIComponent(params.get('cmd'));
-  write(`> ${escapeHtml(c)}`);
-  handle(c);
-}
-
 write(`Welcome ${username}! Type "help" to see commands.`);
 </script>
 </body>
