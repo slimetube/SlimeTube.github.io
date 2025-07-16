@@ -55,7 +55,7 @@
   </style>
 </head>
 <body>
-  <noscript>⚠ JavaScript is required to use this terminal.</noscript>
+  <noscript>⚠ JavaScript is required. This terminal will not work without it.</noscript>
   <div id="indicator"></div>
   <div id="terminal"></div>
   <div id="input-container">
@@ -81,12 +81,17 @@ const defaultPfps = [
   'https://slimetube.github.io/src/spen.webp',
   'https://slimetube.github.io/src/vee.webp'
 ];
+const defaultUsernames = [
+  'bubble app', 'Hold Up', 'SillyBilly1234', 'iCarlyFan5465'
+];
 
-let username = localStorage.getItem('cmd_username') || "bubble app";
+let username = localStorage.getItem('cmd_username') || defaultUsernames[Math.floor(Math.random() * defaultUsernames.length)];
 let pfp = localStorage.getItem('cmd_pfp') || defaultPfps[Math.floor(Math.random() * defaultPfps.length)];
 
 const history = JSON.parse(localStorage.getItem('cmd_history') || '[]');
 let historyIndex = history.length;
+
+let veeWelcomed = false;
 
 indicator.textContent = `Platform: ${navigator.platform} | UA: ${navigator.userAgent}`;
 
@@ -133,8 +138,8 @@ async function runCommand(cmd, piped = '') {
   } else if (base === 'help') {
     write(`Commands:
 clear, help, echo, curl, swapbg, fontswap, theme, speak, 
-platform, useragent, date, username, webhookpfp, dump, bart, 
-ai, open, littlecaesars, pizz-zza, dscrd, pfp, unixtime`);
+platform, useragent, date, username, webhookpfp, pfp, dump, bart, 
+ai, open, littlecaesars, pizz-zza, dscrd, unixtime`);
   } else if (base === 'echo') {
     out = escapeHtml(parts.slice(1).join(' ') || piped);
     write(out);
@@ -144,15 +149,72 @@ ai, open, littlecaesars, pizz-zza, dscrd, pfp, unixtime`);
     const r = await safeFetch(url);
     out = escapeHtml(await r.text());
     write(out);
-  } else if (base === 'dscrd') {
-    const msg = parts.slice(1).join(' ') || piped;
-    if (blockedWords.some(w => msg.toLowerCase().includes(w))) return write('Blocked!');
-    await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ content: msg, username: username, avatar_url: pfp })
-    });
-    write('Sent!');
+  } else if (base === 'swapbg') {
+    document.body.style.backgroundColor = parts[1] || '#000';
+    document.body.style.backgroundImage = parts[2] ? `url(${parts[2]})` : '';
+    document.body.style.backgroundSize = '100% 100%';
+    write(`Background updated`);
+  } else if (base === 'fontswap') {
+    const url = parts[1];
+    if (!url) return write('Usage: fontswap <url>');
+    const name = url.split('/').pop().split('.')[0];
+    const style = document.createElement('style');
+    style.textContent = `@font-face{font-family:'${name}';src:url('${url}')}body,input{font-family:'${name}'}`;
+    document.head.appendChild(style);
+    write(`Font changed to ${name}`);
+  } else if (base === 'theme') {
+    const th = parts[1];
+    if (th==='aero') document.body.style.background = '#000';
+    if (th==='adult') { document.body.style.background = '#000'; document.body.style.color = '#fff'; }
+    if (th==='slime') {
+      document.body.style.backgroundImage = 'url(https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png)';
+      document.body.style.backgroundSize = '100% 100%';
+    }
+    write(`Theme ${th} applied`);
+  } else if (base === 'speak') {
+    const t = parts.slice(1).join(' ') || piped;
+    if (t) speechSynthesis.speak(new SpeechSynthesisUtterance(t));
+  } else if (base === 'platform') {
+    write(navigator.platform);
+  } else if (base === 'useragent') {
+    write(navigator.userAgent);
+  } else if (base === 'date') {
+    write(new Date().toString());
+  } else if (base === 'username') {
+    const newName = parts.slice(1).join(' ');
+    if (blockedWords.some(w => newName.toLowerCase().includes(w))) return write('Blocked word!');
+    username = newName;
+    localStorage.setItem('cmd_username', username);
+    updateUsernameViewer();
+    write(`Username set to ${username}`);
+  } else if (base === 'webhookpfp' || base === 'pfp') {
+    write(`Current PFP: ${pfp}`);
+  } else if (base === 'dump') {
+    const all = Array.from(terminal.children).map(e => e.textContent.replace(/^>\s/, '')).join('\n');
+    const blob = new Blob([all], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'dump.pegx';
+    a.click();
+    write('Dump saved.');
+  } else if (base === 'bart') {
+    const text = "Eat my shorts!";
+    const div = document.createElement('div');
+    div.innerHTML = [...text].map((l, i) =>
+      `<span style="color:${rainbowColors[i % rainbowColors.length]}">${l}</span>`
+    ).join('');
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+  } else if (base === 'ai') {
+    const q = parts.slice(1).join(' ') || piped;
+    const r = await safeFetch(`https://text.pollinations.ai/${encodeURIComponent(q)}`);
+    const t = await r.text();
+    write(t);
+  } else if (base === 'open') {
+    const url = parts[1] || piped;
+    if (!url) return write('Usage: open <url>');
+    window.open(url, '_blank', 'width=800,height=600,resizable=yes');
+    write(`Opened ${url}`);
   } else if (base === 'littlecaesars' || base === 'pizz-zza') {
     write('Pizza Pizza!');
     await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
@@ -164,14 +226,20 @@ ai, open, littlecaesars, pizz-zza, dscrd, pfp, unixtime`);
         avatar_url: pfp
       })
     });
+  } else if (base === 'dscrd') {
+    const msg = parts.slice(1).join(' ') || piped;
+    if (blockedWords.some(w => msg.toLowerCase().includes(w))) return write('Blocked!');
+    await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ content: msg, username: username, avatar_url: pfp })
+    });
+    write('Sent!');
   } else if (base === 'unixtime') {
     const num = Number(parts[1]);
-    if (isNaN(num)) {
-      write('Usage: unixtime <number>');
-    } else {
-      const d = new Date(num * 1000);
-      write(`${num} => ${d.toUTCString()} | ${d.toString()}`);
-    }
+    if (isNaN(num)) return write('Usage: unixtime <number>');
+    const d = new Date(num * 1000);
+    write(`${num} => ${d.toUTCString()} | ${d.toString()}`);
   } else {
     write('Unknown command');
   }
@@ -192,8 +260,31 @@ input.addEventListener('keydown', e => {
     input.value = '';
     historyIndex = history.length;
   }
+  if (e.key === 'ArrowUp') {
+    if (historyIndex > 0) { input.value = history[--historyIndex]; e.preventDefault(); }
+  }
+  if (e.key === 'ArrowDown') {
+    if (historyIndex < history.length - 1) { input.value = history[++historyIndex]; } else { input.value = ''; historyIndex = history.length; }
+    e.preventDefault();
+  }
 });
 updateUsernameViewer();
+
+// Vee welcome chance (1 in 512)
+if (!veeWelcomed && Math.random() < (1/512)) {
+  veeWelcomed = true;
+  write("Vee: Welcome!");
+  fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      content: `Vee has greeted ${username}.`,
+      username: "Vee",
+      avatar_url: "https://slimetube.github.io/src/vee.webp"
+    })
+  });
+}
+
 write(`Welcome ${username}! Type "help" to see commands.`);
 </script>
 </body>
