@@ -1,0 +1,16 @@
+baseURL = "https://slimetube.github.io/"
+languageCode = "en-us"
+title = "My Hugo Site"
+
+# Optional: Enable minify in config too
+[minify]
+  minifyOutput = true
+
+# Recommended for GitHub Pages: use relative URLs
+relativeURLs = true
+canonifyURLs = true
+
+# Optional: RSS feed output
+[outputs]
+  home = ["HTML", "RSS"]
+
