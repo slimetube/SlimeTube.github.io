@@ -1,0 +1,7 @@
+User-agent: facebookexternalhit
+User-agent: Twitterbot
+User-agent: Yandex
+User-agent: AdsBot-Google
+Disallow: /terminal
+Allow: /index.html
+Disallow: /exp
