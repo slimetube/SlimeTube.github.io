@@ -131,10 +131,8 @@ async function safeFetch(url) {
 
 let musicAudio = null;
 
-async function listGhls(path = '', indent = '') {
-  const repo = 'slimetube';
-  const repoName = 'SlimeTube.github.io';
-  const apiUrl = `https://api.github.com/repos/${repo}/${repoName}/contents/${path}`;
+async function listGhls(user, repo, path = '', indent = '') {
+  const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
   try {
     const res = await safeFetch(apiUrl);
     const data = await res.json();
@@ -151,7 +149,7 @@ async function listGhls(path = '', indent = '') {
       write(`${indent}${type} ${entry.name}`);
       if (entry.type === 'dir') {
         // Recurse into subdirectory with more indentation
-        await listGhls(entry.path, indent + '  ');
+        await listGhls(user, repo, entry.path, indent + '  ');
       }
     }
   } catch {
@@ -307,8 +305,14 @@ ai, open, littlecaesars, pizz-zza, dscrd, unixtime, music, stop, ghls`);
     }
   }
   else if (base === 'ghls') {
-    const path = parts.slice(1).join(' ') || '';
-    await listGhls(path);
+    if (parts.length < 3) {
+      write('Usage: ghls <user> <repo> [path]');
+    } else {
+      const user = parts[1];
+      const repo = parts[2];
+      const path = parts.slice(3).join(' ') || '';
+      await listGhls(user, repo, path);
+    }
   }
   else {
     write('Unknown command');
