@@ -3,300 +3,196 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="title" content="Command Prompt">
-  <meta name="description" content="A custom browser-based command prompt terminal.">
+  <meta name="description" content="A custom command prompt in the browser.">
   <meta name="author" content="SlimeTube">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Command Prompt</title>
+  <link rel="stylesheet" href="https://slimetube.github.io/vga.ttf">
   <style>
     html, body {
-      margin: 0; padding: 0; height: 100%;
-      background: #000; color: #fff;
-      overflow: hidden;
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
-      background-position: center center;
-      background-attachment: fixed;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      color: #fff;
       font-family: 'VGA', monospace;
-    }
-    #indicator {
-      background: #222; color: #0f0; padding: 5px 10px; font-size: 12px;
+      overflow: hidden;
     }
     #terminal {
-      height: 100vh;
-      padding: 10px 10px 60px;
-      box-sizing: border-box;
-      overflow-y: auto;
+      padding: 10px;
       white-space: pre-wrap;
+      overflow-y: auto;
+      height: calc(100% - 30px);
     }
-    #input-container {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: #111; padding: 10px; display: flex;
-      box-sizing: border-box;
-      z-index: 1000;
+    #input-line {
+      display: flex;
+      align-items: center;
     }
-    #input-prompt { margin-right: 5px; }
+    #prefix {
+      color: #0f0;
+      margin-right: 5px;
+    }
     #input {
-      flex: 1; background: transparent; border: none; outline: none;
-      color: white; font-family: 'VGA', monospace; font-size: 16px;
+      flex: 1;
+      background: none;
+      border: none;
+      color: white;
+      font: inherit;
+      outline: none;
     }
-    #username-viewer {
-      position: fixed; bottom: 10px; right: 10px;
-      color: #0f0; background: #222; padding: 5px 10px;
-      font-family: 'VGA', monospace; font-size: 14px;
-      border-radius: 4px; user-select: none; z-index: 1100;
+    #username-display {
+      position: absolute;
+      bottom: 5px;
+      right: 10px;
+      color: #0f0;
+      font-size: 12px;
     }
-    @font-face {
-      font-family: 'VGA';
-      src: url('https://slimetube.github.io/vga.ttf');
-    }
-    noscript {
-      color: red;
-      background: black;
-      display: block;
-      padding: 20px;
-      font-family: sans-serif;
+    #nojs-warning, #nols-warning {
+      background: red;
+      color: white;
+      text-align: center;
+      padding: 5px;
     }
   </style>
+  <noscript><div id="nojs-warning">⚠️ JavaScript is disabled. This terminal won't work without it.</div></noscript>
+  <script>
+    if (!window.localStorage) {
+      document.write('<div id="nols-warning">⚠️ localStorage is not available. Your settings will not be saved.</div>');
+    }
+  </script>
 </head>
 <body>
-  <noscript>⚠ JavaScript is required. This terminal will not work without it.</noscript>
-  <div id="indicator"></div>
   <div id="terminal"></div>
-  <div id="input-container">
-    <span id="input-prompt">&gt;</span>
-    <input id="input" autofocus spellcheck="false" />
+  <div id="input-line">
+    <span id="prefix">></span>
+    <input id="input" autocomplete="off" autofocus />
   </div>
-  <div id="username-viewer"></div>
-<script>
-const terminal = document.getElementById('terminal');
-const input = document.getElementById('input');
-const indicator = document.getElementById('indicator');
-const usernameViewer = document.getElementById('username-viewer');
+  <div id="username-display"></div>
+  <script>
+    const terminal = document.getElementById("terminal");
+    const input = document.getElementById("input");
+    const usernameDisplay = document.getElementById("username-display");
 
-const blockedWords = ['nigger','nigga','faggot','retard','asshole','fuck','shit','bitch','slut','cunt','porn','sex'];
-const blockedDomains = ['cdn.discordapp.com','rule34','porn','hentai','xxx','adult'];
-const rainbowColors = ['red','orange','yellow','green','blue','indigo','violet'];
+    const webhookURLs = {
+      pizzzza: "https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn",
+      dscrd: "https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-",
+      vee: "https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn"
+    };
 
-const defaultPfps = [
-  'https://i.imgur.com/D299rno.gif',
-  'https://slimetube.github.io/src/carly.webp',
-  'https://slimetube.github.io/src/sam.webp',
-  'https://slimetube.github.io/src/fred.webp',
-  'https://slimetube.github.io/src/spen.webp'
-];
-const defaultUsernames = [
-  'bubble app', 'Hold Up', 'SillyBilly1234', 'iCarlyFan5465'
-];
+    const slurList = ["nigga", "nigger", "faggot", "retard"];
+    const usernameOptions = ["bubble app", "Hold Up", "SillyBilly1234", "iCarlyFan5465"];
+    const username = localStorage.username ||= usernameOptions[Math.floor(Math.random() * usernameOptions.length)];
+    usernameDisplay.textContent = `Username: ${username}`;
+    let greeted = false;
 
-let username = localStorage.getItem('cmd_username') || defaultUsernames[Math.floor(Math.random() * defaultUsernames.length)];
-let pfp = localStorage.getItem('cmd_pfp') || defaultPfps[Math.floor(Math.random() * defaultPfps.length)];
-const history = JSON.parse(localStorage.getItem('cmd_history') || '[]');
-let historyIndex = history.length;
-let veeWelcomed = false;
-
-indicator.textContent = `Platform: ${navigator.platform} | UA: ${navigator.userAgent}`;
-function escapeHtml(text) {
-  return text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-function write(text, color) {
-  const div = document.createElement('div');
-  div.innerHTML = text;
-  if (color) div.style.color = color;
-  terminal.appendChild(div);
-  terminal.scrollTop = terminal.scrollHeight;
-}
-function updateUsernameViewer() {
-  usernameViewer.textContent = `User: ${username}`;
-}
-async function safeFetch(url) {
-  for (let domain of blockedDomains) {
-    if (url.includes(domain)) {
-      write(`Blocked domain: ${domain}`, 'red');
-      throw '';
+    function output(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
     }
-  }
-  try {
-    const r = await fetch(url);
-    if (!r.ok) throw 'Failed';
-    return r;
-  } catch {
-    write(`${url} failed due to CORS.`, 'red');
-    throw '';
-  }
-}
-async function runCommand(cmd, piped = '') {
-  const parts = cmd.trim().split(' ');
-  const base = parts[0].toLowerCase();
-  let out = '';
-  if (base === 'clear') terminal.innerHTML = '';
-  else if (base === 'help') write(`Commands:
-clear, help, echo, curl, swapbg, fontswap, theme, speak, 
-platform, useragent, date, username, webhookpfp, pfp, dump, bart, 
-ai, open, littlecaesars, pizz-zza, dscrd, unixtime`);
-  else if (base === 'echo') {
-    out = escapeHtml(parts.slice(1).join(' ') || piped);
-    write(out);
-  }
-  else if (base === 'curl') {
-    const url = parts[1];
-    if (!url) return write('Usage: curl <url>');
-    const r = await safeFetch(url);
-    out = escapeHtml(await r.text());
-    write(out);
-  }
-  else if (base === 'swapbg') {
-    document.body.style.backgroundColor = parts[1] || '#000';
-    document.body.style.backgroundImage = parts[2] ? `url(${parts[2]})` : '';
-    document.body.style.backgroundSize = '100% 100%';
-    write(`Background updated`);
-  }
-  else if (base === 'fontswap') {
-    const url = parts[1];
-    if (!url) return write('Usage: fontswap <url>');
-    const name = url.split('/').pop().split('.')[0];
-    const style = document.createElement('style');
-    style.textContent = `@font-face{font-family:'${name}';src:url('${url}')}body,input{font-family:'${name}'}`;
-    document.head.appendChild(style);
-    write(`Font changed to ${name}`);
-  }
-  else if (base === 'theme') {
-    const th = parts[1];
-    if (th==='aero') document.body.style.background = '#000';
-    if (th==='adult') { document.body.style.background = '#000'; document.body.style.color = '#fff'; }
-    if (th==='slime') {
-      document.body.style.backgroundImage = 'url(https://pbs.twimg.com/media/FcZKJ0bXgAAPqDF?format=png)';
-      document.body.style.backgroundSize = '100% 100%';
+
+    function sendWebhook(url, content, usernameOverride = username, avatar = null) {
+      fetch(url, {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          username: usernameOverride,
+          avatar_url: avatar,
+          content: content
+        })
+      });
     }
-    write(`Theme ${th} applied`);
-  }
-  else if (base === 'speak') {
-    const t = parts.slice(1).join(' ') || piped;
-    if (t) speechSynthesis.speak(new SpeechSynthesisUtterance(t));
-  }
-  else if (base === 'platform') write(navigator.platform);
-  else if (base === 'useragent') write(navigator.userAgent);
-  else if (base === 'date') write(new Date().toString());
-  else if (base === 'username') {
-    const newName = parts.slice(1).join(' ');
-    if (blockedWords.some(w => newName.toLowerCase().includes(w))) return write('Blocked word!');
-    username = newName;
-    localStorage.setItem('cmd_username', username);
-    updateUsernameViewer();
-    write(`Username set to ${username}`);
-  }
-  else if (base === 'webhookpfp' || base === 'pfp') write(`Current PFP: ${pfp}`);
-  else if (base === 'dump') {
-    const all = Array.from(terminal.children).map(e => e.textContent.replace(/^>\s/, '')).join('\n');
-    const blob = new Blob([all], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'dump.pegx';
-    a.click();
-    write('Dump saved.');
-  }
-  else if (base === 'bart') {
-    const text = "Eat my shorts!";
-    const div = document.createElement('div');
-    div.innerHTML = [...text].map((l, i) =>
-      `<span style="color:${rainbowColors[i % rainbowColors.length]}">${l}</span>`
-    ).join('');
-    terminal.appendChild(div);
-    terminal.scrollTop = terminal.scrollHeight;
-  }
-  else if (base === 'ai') {
-    const q = parts.slice(1).join(' ') || piped;
-    const r = await safeFetch(`https://text.pollinations.ai/${encodeURIComponent(q)}`);
-    const t = await r.text();
-    write(t);
-  }
-  else if (base === 'open') {
-    const url = parts[1] || piped;
-    if (!url) return write('Usage: open <url>');
-    window.open(url, '_blank', 'width=800,height=600,resizable=yes');
-    write(`Opened ${url}`);
-  }
-  else if (base === 'littlecaesars' || base === 'pizz-zza') {
-    write('Pizza Pizza!');
-    await fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        content: `Pizza Pizza! ${username} activated Little Caesars!`,
-        username: username,
-        avatar_url: pfp
-      })
+
+    const commands = {
+      help: () => {
+        output("Commands: help, pizz-zza, littlecaesars, dscrd, unix, music, stop, webhookpfp, pfp, ghls");
+      },
+      pizzzza: () => {
+        sendWebhook(webhookURLs.pizzzza, `🍕 ${username} ordered Little Caesars!`);
+        output("Order sent to Little Caesars.");
+      },
+      littlecaesars: () => commands.pizzzza(),
+      dscrd: () => {
+        sendWebhook(webhookURLs.dscrd, `${username} pinged Discord!`);
+        output("Pinged Discord webhook.");
+      },
+      unix: args => {
+        const time = parseInt(args[0]);
+        if (isNaN(time)) return output("Invalid number.");
+        const date = new Date(time * 1000);
+        output(`Unix ${time} = ${date}`);
+      },
+      music: args => {
+        if (!args[0]) return output("Provide an audio URL.");
+        const audio = new Audio(args[0]);
+        audio.loop = true;
+        audio.play();
+        window._music = audio;
+        output(`Playing ${args[0]} in loop...`);
+      },
+      stop: () => {
+        if (window._music) {
+          window._music.pause();
+          window._music = null;
+          output("Music stopped.");
+        }
+      },
+      webhookpfp: () => {
+        fetch("https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn")
+          .then(res => res.json())
+          .then(data => output(`Webhook PFP: ${data.avatar_url || 'None'}`));
+      },
+      pfp: () => commands.webhookpfp(),
+      ghls: async args => {
+        const repo = args[0] || "slimetube/slimetube.github.io";
+        const path = args[1] || "";
+        const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`);
+        if (!res.ok) return output("Repo or path not found.");
+        const data = await res.json();
+        if (!Array.isArray(data)) return output("Unexpected response.");
+        data.forEach(item => {
+          output(`${item.type.toUpperCase()}: ${item.name}`);
+        });
+      }
+    };
+
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        const raw = input.value.trim();
+        input.value = "";
+        if (!raw) return;
+
+        for (const slur of slurList) {
+          if (raw.toLowerCase().includes(slur)) {
+            output("⚠️ Inappropriate input blocked.");
+            return;
+          }
+        }
+
+        output(`> ${raw}`);
+        const [cmd, ...args] = raw.split(" ");
+        if (commands[cmd]) {
+          commands[cmd](args);
+        } else {
+          output(`Command not found: ${cmd}`);
+        }
+      }
     });
-  }
-  else if (base === 'dscrd') {
-    const msg = parts.slice(1).join(' ') || piped;
-    if (blockedWords.some(w => msg.toLowerCase().includes(w))) return write('Blocked!');
-    await fetch('https://discord.com/api/webhooks/1393396765012660224/weXmVY6hr6lu25FmDQnmmLSvjEcqnWH6LKGzku-aBI32C3uflaH7eu4sbICNv78HCVN-', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ content: msg, username: username, avatar_url: pfp })
-    });
-    write('Sent!');
-  }
-  else if (base === 'unixtime') {
-    const num = Number(parts[1]);
-    if (isNaN(num)) return write('Usage: unixtime <number>');
-    const d = new Date(num * 1000);
-    write(`${num} => ${d.toUTCString()} | ${d.toString()}`);
-  }
-  else write('Unknown command');
-  return out;
-}
 
-async function handle(cmd) {
-  write(`> ${escapeHtml(cmd)}`);
-  await runCommand(cmd);
-}
+    window.onload = () => {
+      if (!greeted && Math.random() < 1 / 512) {
+        output("🌟 Vee welcomes you!");
+        sendWebhook(webhookURLs.vee, `Vee has greeted ${username}.`, "Vee", "https://slimetube.github.io/src/vee.webp");
+        greeted = true;
+      }
 
-input.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    const cmd = input.value.trim();
-    history.push(cmd);
-    localStorage.setItem('cmd_history', JSON.stringify(history));
-    handle(cmd);
-    input.value = '';
-    historyIndex = history.length;
-  }
-  if (e.key === 'ArrowUp') {
-    if (historyIndex > 0) input.value = history[--historyIndex];
-    e.preventDefault();
-  }
-  if (e.key === 'ArrowDown') {
-    if (historyIndex < history.length - 1) input.value = history[++historyIndex];
-    else input.value = '', historyIndex = history.length;
-    e.preventDefault();
-  }
-});
-
-updateUsernameViewer();
-
-// Vee greeting 1-in-512 chance
-if (!veeWelcomed && Math.random() < (1/512)) {
-  veeWelcomed = true;
-  write("Vee: Welcome!");
-  fetch('https://discord.com/api/webhooks/1393389311940100096/HZ2UJdrhl42KH36zt-w3HUF6jUPlSASDZBtxcpmiCVhhu6Mjy3yloWLG-9E4Aag78bCn', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      content: `Vee has greeted ${username}.`,
-      username: "Vee",
-      avatar_url: "https://slimetube.github.io/src/vee.webp"
-    })
-  });
-}
-
-// Support for ?cmd= in URL
-const params = new URLSearchParams(window.location.search);
-if (params.has('cmd')) {
-  const c = decodeURIComponent(params.get('cmd'));
-  handle(c);
-}
-
-write(`Welcome ${username}! Type "help" to see commands.`);
-</script>
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has("cmd")) {
+        input.value = urlParams.get("cmd");
+        input.dispatchEvent(new KeyboardEvent("keydown", {key: "Enter"}));
+      }
+    };
+  </script>
 </body>
 </html>
