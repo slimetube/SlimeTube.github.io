@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SlimeTube Advertisement</title>
+  <style>
+    @font-face {
+      font-family: 'VGA';
+      src: url('https://slimetube.github.io/vga.ttf') format('truetype');
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'VGA', monospace;
+    }
+
+    a {
+      color: lime;
+      text-decoration: none;
+      font-size: 10vw;
+      text-align: center;
+      animation: glow 1s infinite alternate, flicker 0.15s infinite;
+      padding: 2vw;
+      border: 0.5vw solid lime;
+      display: inline-block;
+      width: 90%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 5px lime, 0 0 10px lime;
+      }
+      to {
+        text-shadow: 0 0 10px lime, 0 0 20px lime;
+      }
+    }
+
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        opacity: 1;
+      }
+      20%, 22%, 24%, 55% {
+        opacity: 0.8;
+      }
+    }
+
+    @media (max-width: 600px) {
+      a {
+        font-size: 12vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="https://slimetube.github.io" target="_blank">
+    SlimeTube<br>SlimeTube.github.io
+  </a>
+</body>
+</html>
