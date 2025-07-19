@@ -1765,7 +1765,7 @@ audioputmix # #p2
 volume #t}}
 {if:{arg:0}|=|wii|then:{set:code|
 copy # #a
-flop
+flop #
 huecurvergba # all 0 0 0 1 0 0 0 1 0 0 0
 invert #
 zoom # 0.99}}
