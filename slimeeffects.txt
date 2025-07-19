@@ -1768,7 +1768,10 @@ copy # #a
 flop #
 huecurvergba # all 0 0 0 1 0 0 0 1 0 0 0
 invert #
-zoom # 0.99}}
+zoom # 0.99
+audiopitch # 1.25
+audioputmix # #a
+volume #}}
 {if:{arg:0}|=|shuffle|then:{set:code|shuffle # 0.1}}{set:old|{py:code = {jsonify:{get:code}}
 a = code.replace({jsonify:copy # #$
 convert #$ audio/wav}," ")
