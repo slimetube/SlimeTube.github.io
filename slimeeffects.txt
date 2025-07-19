@@ -1750,7 +1750,7 @@ audioputreplace # #a}}
 {if:{arg:0}|=|randomness|then:{set:code|shuffle # 0.1}}
 {if:{arg:0}|=|weird|then:{set:code|reverse #
 foreachframe # 0 #fc "offset #x 5(idx(#fc/2))
-rotate #x idx*5 none true}
+rotate #x idx*5 none true}}
 {set:old|{py:code = {jsonify:{get:code}}
 a = code.replace({jsonify:copy # #$
 convert #$ audio/wav}," ")
