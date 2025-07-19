@@ -1,5 +1,5 @@
 {set:bannedtagalias|{py:tag = {tagid}
-bannedtags=[784944463704269029,787094417931547662,787094107821487115]
+bannedtags=[]
 if tag not in bannedtags:
    print('approved')
 else:
@@ -1713,6 +1713,20 @@ audiopitch #p2 0.256
 audioputmix # #p
 audioputmix # #p2
 volume #}}
+{if:{arg:0}|=|vee major|then:{set:code|grayscale #
+huecurvergba # red 0.2 0 0.5 1 0
+huecurvergba # green 0.2 1 1 1 0
+huecurvergba # blue 0.2 0 0.5 1 0
+load https://slimetube.github.io/src/Vee_full_icon.webp vee
+fit vee #w #h
+contain vee veew/2 veeh/2
+overlay # vee 0 #h/2
+copy # #p
+audiopitch # 1.189
+audiopitch #p 0.891
+audioputmix # #p
+volume #
+audiovibrato # 6000 0.05}}
 {if:{arg:0}|=|invert|then:{set:code|invert #}}
 {if:{arg:0}|=|invert luminosity|then:{set:code|contrast # -1}}
 {if:{arg:0}|=|spinslide|then:{set:code|spin # yes no yes 
