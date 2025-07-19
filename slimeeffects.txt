@@ -1741,7 +1741,7 @@ audioputreplace # #$}}
 {if:{arg:0}|=|invert luminosity|then:{set:code|contrast # -1}}
 {if:{arg:0}|=|spinslide|then:{set:code|spin # yes no yes 
 slide # 1 left}}
-{if:{arg:0}|=|shake|then:{set:code|shake # {range:-2|2} {range:-2|2}}}
+{if:{arg:0}|=|shake|then:{set:code|shake # 2 2}}
 {if:{arg:0}|=|ohio major|then:{set:code|hueshifthsv # -60
 copy # #a
 audiopitch #a 2**(-1/12)
