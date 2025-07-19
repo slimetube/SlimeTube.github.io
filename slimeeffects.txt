@@ -13,7 +13,7 @@ authname = '{usertag}'
 
 embeds = []
 embeds.append({
-'color': 0x609cff, 
+'color': 0x00ff00, 
 'author': {'name': authname,'icon_url': icon},
 'footer': {'text':"SlimeEffects",'icon_url':icon2},
 'fields': [ {"name":"**Basic Usage**","value":"```.t {tagname} <effect> <effect-args> <subcommand> <subcommand-args>```"},{"name":"**Subcommand List**","value":"- `raw <medianame> <oldpitch?>` - Shows the MediaScript raw code for the effect.\n\n- `ihtx <powers> <snip> <notrim?> <oldpitch?>` - Does an IHTX with an effect for a set amount of powers.\n\n- `multiplier <powers> <oldpitch?>` - Does an effect on a source for a set amount of powers.\n\n- `ihtxbuggy <powers> <snip> <notrim?> <oldpitch?>` - The same as `ihtx` but buggy.\n\n- `ihtxreverse <powers> <snip> <notrim?> <oldpitch?>` - Does an IHTX with an effect for a set amount of powers but reversed.\n\n- `oldpitch` - Adds the old pitch system without having to use ihtx commands.\n\n- `archive` - Shows the archive of the entire tagscript code."} ],
@@ -1790,14 +1790,14 @@ pageidx = 0
 
 for i, v in enumerate(effects):
     if i % 20 == 0:
-        pages.append({"embed":{"color":0x609cff,"title":f"{if:{arg:1}|=||then:**The Effects List**|else:**Showing effects matching '{arg:1}'**}","description":content,"footer":{"text":f"Page {pageidx} of {mcount} ({effnum} Total Effects)","icon_url":icon2}, "author": {"name":auth, "icon_url":icon}}})
+        pages.append({"embed":{"color":0x00ff00,"title":f"{if:{arg:1}|=||then:**The Effects List**|else:**Showing effects matching '{arg:1}'**}","description":content,"footer":{"text":f"Page {pageidx} of {mcount} ({effnum} Total Effects)","icon_url":icon2}, "author": {"name":auth, "icon_url":icon}}})
         pageidx += 1
         content = ""
         content += f"- {v} \n"
     else:
         content += f"- {v} \n"
 
-pages.append({"embed":{"color":0x609cff,"title":f"{if:{arg:1}|=||then:**The Effects List**|else:**Showing effects matching '{arg:1}'**}","description":content,"footer":{"text":f"Page {pageidx} of {mcount} ({effnum} Total Effects)","icon_url":icon2}, "author": {"name":auth, "icon_url":icon}}})
+pages.append({"embed":{"color":0x00ff00,"title":f"{if:{arg:1}|=||then:**The Effects List**|else:**Showing effects matching '{arg:1}'**}","description":content,"footer":{"text":f"Page {pageidx} of {mcount} ({effnum} Total Effects)","icon_url":icon2}, "author": {"name":auth, "icon_url":icon}}})
 pages.pop(0)
 print(js.dumps({"pages": pages}))}|{ignore:{js:console.error(`No effects found.`)}}}} |else:{if:{get:res}|=|false|then:{js:console.error(`Unknown effect: {arg:0}\nuse .t {tagname} list to see all available effects or contact slimetube to add an effect.`)}|else:-# Note: SlimeEffects is in BETA!{newline}{choose:whar|bruh|i had to start over|sus|amogus|imposter} {set:powers|{or:{arg:{math:{get:offset}+1}}|10}} {set:time|{or:{arg:{math:{get:offset}+2}}|0.5}} {if:{arg:{get:offset}}|=|raw|then:{py:import json
 icon = '{image:{avatar}}'
@@ -1806,7 +1806,7 @@ authname = '{usertag}'
 content = {jsonify:{code:{replace:#|{or:{arg:{math:{get:offset}+1}}|#}|{if:{arg:{math:{get:offset}+2}}|=|true|then:{get:old}|else:{get:code}}}}}
 embeds = []
 embeds.append({
-'color': 0x609cff, 
+'color': 0x00ff00, 
 'title': "**Code**", 
 'description': content,
 'author': {'name': authname,'icon_url': icon},
