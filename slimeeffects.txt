@@ -1,9 +1,9 @@
 {set:bannedtagalias|{py:tag = {tagid}
-bannedtags=[]
+bannedtags=[784944463704269029,787094417931547662,787094107821487115]
 if tag not in bannedtags:
    print('approved')
 else:
-   print('banned')}} {if:{get:bannedtagalias}|=|banned|then:{js:console.error(`This alias is banned for using.`)}|else:{if:{argslen}|=|0|then:# SlimeEffects v1.0.0
+   print('banned')}} {if:{get:bannedtagalias}|=|banned|then:{js:console.error(`This alias is banned for using.`)}|else:{if:{argslen}|=|0|then:# SlimeEffects v2.0.3
 
 -# Last updated on 7/15/2025
 {py:import json
@@ -13,7 +13,7 @@ authname = '{usertag}'
 
 embeds = []
 embeds.append({
-'color': 0x00ff00, 
+'color': 0x609cff, 
 'author': {'name': authname,'icon_url': icon},
 'footer': {'text':"SlimeEffects",'icon_url':icon2},
 'fields': [ {"name":"**Basic Usage**","value":"```.t {tagname} <effect> <effect-args> <subcommand> <subcommand-args>```"},{"name":"**Subcommand List**","value":"- `raw <medianame> <oldpitch?>` - Shows the MediaScript raw code for the effect.\n\n- `ihtx <powers> <snip> <notrim?> <oldpitch?>` - Does an IHTX with an effect for a set amount of powers.\n\n- `multiplier <powers> <oldpitch?>` - Does an effect on a source for a set amount of powers.\n\n- `ihtxbuggy <powers> <snip> <notrim?> <oldpitch?>` - The same as `ihtx` but buggy.\n\n- `ihtxreverse <powers> <snip> <notrim?> <oldpitch?>` - Does an IHTX with an effect for a set amount of powers but reversed.\n\n- `oldpitch` - Adds the old pitch system without having to use ihtx commands.\n\n- `archive` - Shows the archive of the entire tagscript code."} ],
@@ -1697,6 +1697,12 @@ convert #$ audio/wav
 audiopitch #$ 2**(0.5/12)
 repeatduration #$ #d
 audioputreplace # #$}}
+{if:{arg:0}|=|high major|then:{set:code|hueshifthsv # 120
+copy # #$
+convert #$ audio/wav
+audiopitch #$ 2**(3/12)
+repeatduration #$ #d
+audioputreplace # #$}}
 {if:{arg:0}|=|directv major|then:{set:code|grayscale #
 huecurvergba # red 0 0.1
 huecurvergba # green 0.2 0.1 0
@@ -1756,14 +1762,13 @@ copy #p #p2
 audiopitch #p2 0.891
 audioputmix # #p
 audioputmix # #p2
-volume #t}}
-{set:old|{py:code = {jsonify:{get:code}}
+volume #t}} {set:old|{py:code = {jsonify:{get:code}}
 a = code.replace({jsonify:copy # #$
 convert #$ audio/wav}," ")
 b = a.replace({jsonify:repeatduration #$ #d
 audioputreplace # #$}," ")
 c = b.replace("#$","#")
-print(c)}} {if:{arg:0}|=|archive|then:{attachtext:{text:https://slimetube.github.io/slimeeffects.txt}}|else:{if:{arg:0}|=|list|then:{eval:{iferror:{py:import json as js
+print(c)}} {if:{arg:0}|=|archive|then:{attachtext:{text:https://pastebin.com/raw/XCDCud0L}}|else:{if:{arg:0}|=|list|then:{eval:{iferror:{py:import json as js
 import fnmatch
 pages = []
 searchval = {jsonify:*{arg:1}*}
@@ -1785,24 +1790,23 @@ pageidx = 0
 
 for i, v in enumerate(effects):
     if i % 20 == 0:
-        pages.append({"embed":{"color":0x00ff00,"title":f"{if:{arg:1}|=||then:**The Effects List**|else:**eShowing effects matching '{arg:1}'**}","description":content,"footer":{"text":f"Page {pageidx} of {mcount} ({effnum} Total Effects)","icon_url":icon2}, "author": {"name":auth, "icon_url":icon}}})
+        pages.append({"embed":{"color":0x609cff,"title":f"{if:{arg:1}|=||then:**The Effects List**|else:**Showing effects matching '{arg:1}'**}","description":content,"footer":{"text":f"Page {pageidx} of {mcount} ({effnum} Total Effects)","icon_url":icon2}, "author": {"name":auth, "icon_url":icon}}})
         pageidx += 1
         content = ""
         content += f"- {v} \n"
     else:
         content += f"- {v} \n"
 
-pages.append({"embed":{"color":0x00ff00,"title":f"{if:{arg:1}|=||then:**The Effects List**|else:**Showing effects matching '{arg:1}'**}","description":content,"footer":{"text":f"Page {pageidx} of {mcount} ({effnum} Total Effects)","icon_url":icon2}, "author": {"name":auth, "icon_url":icon}}})
+pages.append({"embed":{"color":0x609cff,"title":f"{if:{arg:1}|=||then:**The Effects List**|else:**Showing effects matching '{arg:1}'**}","description":content,"footer":{"text":f"Page {pageidx} of {mcount} ({effnum} Total Effects)","icon_url":icon2}, "author": {"name":auth, "icon_url":icon}}})
 pages.pop(0)
-print(js.dumps({"pages": pages}))}|{ignore:{js:console.error(`No effects found.`)}}}} |else:{if:{get:res}|=|false|then:{js:console.error(`Unknown effect: {arg:0}\nuse .t {tagname} list to see all available effects or contact <@980650527484424302> to add an effect.`)}|else:-# Note: SlimeEffects is in BETA!{newline}{choose:whar|bruh|steamed hams|<:BeeboWhar:1266172814759825630>|e|XBOX LOIIIIIIIIIVE!|https://media.discordapp.net/attachments/1360433738059874374/1396120566892855336/now.gif?ex=687cee19&is=687b9c99&hm=96e18c6544a268229566e7d775a44371dbd83fb5199e68a44f36929d121d4797&|{repeat:200|||e}|🪿🪿🪿|Here's your video|Your video is ready!|YOU SHOULD USE `SLIMEEFFECTS`{newline}# NOW!!!!|have a boul mr squidward|hey i feel so sprunki|sprunki funky|CHICKEN JOCKEY|Modular conversion, encoding and encryption be like:|https://tenor.com/view/gubby-roblox-roblox-meme-roblox-gubby-gubby-roblox-gif-10858619263590596322|what the actual pf|https://slimetube.github.io/src/seizures.jpeg|wii u|do you eat burgers for breakfast?|Please put me out of my fucking misery|THIS IS A FREE COPY OF VEGAS PRO BUT BAD|Sponsored by Raid Shadow Legends|Here's your video|HEY {mention}, COME GET YOUR VIDEO|I need your opinion on HoaiSonVo, please|i'm feeling kinda 𝓯𝓻𝓮𝓪𝓴𝔂 today|OVB 不好，NSB 很好。|عزيزي الله، من فضلك أعطني ديسكورد نيترو|help i'm running out of ideas on what to write|honestly, `.webm` is better|"I HATE KLASKY CSUPO" -OpenVideoBot|blanabba|MORK!!!|{repeat:1000|{mention}}|ass|butt|bass|assutt|basst|assutt|This content is available.|you're grounded|hey i feel so sprunki|-# you can't even see me|*insert epic beat drop*|Dragon Saigon Group? What the fuck does that even mean!?|no i'm not copying openvideobot, the allegations are false, kill yourself|it was written in parkour|# /\ /\ /\ #{newline}rip michigan|HACKED BY {mention:{randuser}}|concatmultiple is crazy dawg :skull:|The Nexus S is a smartphone co-developed by Google and Samsung and manufactured by Samsung Electronics for release in 2010|《SPRUNKI》|☆TAT☆ FOUND AFTER 10 YEARS NO WAY|{repeat:30|{mention:{user}}}|have a bowl mr squidward|New punjabi movies 2014 full movie free download hd 1080p|apt apt|guh huh egg|baaren chromed|if I had two donuts ate one and squashed and revived one, how much donuts I have now?|whar|you are making me angry|i have anger issues|W|L|have this, yuh big hoe|guh|I edge to your videos.|https://tenor.com/view/cat-brick-throw-explosion-gif-12081125062559658884|i eat videos. **NOM**|om nom stories|GET OUT!|https://tenor.com/view/eating-meme-spookyspook-bfdi-face-gif-27440393|https://tenor.com/view/uncle-duck-uncle-duck-unc-gif-1296991860415744991|https://julian20yt.github.io/guh-huh-egg.jpg|salagata|ŤģżŰŝł|computer|catdog|xbox|powpowpowpow|pingu|dandys world|guh huh|galaxy nexus|bee co.|https://slimetube.github.io/terminal|{args}|isaq is not banned|the amongus knight|[ 0 ] - windows 8.1|{tag:} {set:powers|{or:{arg:{math:{get:offset}+1}}|10}} {set:time|{or:{arg:{math:{get:offset}+2}}|0.5}} {if:{arg:{get:offset}}|=|raw|then:{py:import json
+print(js.dumps({"pages": pages}))}|{ignore:{js:console.error(`No effects found.`)}}}} |else:{if:{get:res}|=|false|then:{js:console.error(`Unknown effect: {arg:0}\nuse .t {tagname} list to see all available effects or contact slimetube to add an effect.`)}|else:-# Note: SlimeEffects is in BETA!{newline}{choose:whar|bruh|i had to start over|sus|amogus|imposter} {set:powers|{or:{arg:{math:{get:offset}+1}}|10}} {set:time|{or:{arg:{math:{get:offset}+2}}|0.5}} {if:{arg:{get:offset}}|=|raw|then:{py:import json
 icon = '{image:{avatar}}'
 icon2 = 'https://slimetube.github.io/src/seizures.jpeg,'
 authname = '{usertag}'
 content = {jsonify:{code:{replace:#|{or:{arg:{math:{get:offset}+1}}|#}|{if:{arg:{math:{get:offset}+2}}|=|true|then:{get:old}|else:{get:code}}}}}
-
 embeds = []
 embeds.append({
-'color': 0x00ff00, 
+'color': 0x609cff, 
 'title': "**Code**", 
 'description': content,
 'author': {'name': authname,'icon_url': icon},
