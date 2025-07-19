@@ -1768,7 +1768,6 @@ copy # #a
 flop #
 huecurvergba # all 0 0 0 1 0 0 0 1 0 0 0
 invert #
-zoom # 0.99
 audiopitch # 1.25
 audioputmix # #a
 volume #}}
