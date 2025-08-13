@@ -21,6 +21,7 @@
       padding:5px 10px; font-family:'VGA',monospace; font-size:14px; border-radius:4px; user-select:none; z-index:1100;}
     @font-face { font-family:'VGA'; src:url('https://slimetube.github.io/vga.ttf'); }
     noscript { color:red; background:black; display:block; padding:20px; font-family:sans-serif; }
+    img.avatar-inline { width:32px; height:32px; vertical-align:middle; border-radius:50%; margin-right:5px; }
   </style>
 </head>
 <body>
@@ -57,7 +58,7 @@ let historyIndex = history.length;
 let veeWelcomed = false;
 indicator.textContent = `Platform: ${navigator.platform} | UA: ${navigator.userAgent}`;
 
-function escapeHtml(text){ return text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function escapeHtml(text){ return String(text).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function write(text,color){ const div=document.createElement('div'); div.innerHTML=text; if(color) div.style.color=color;
   terminal.appendChild(div); terminal.scrollTop=terminal.scrollHeight; }
 function updateUsernameViewer(){ usernameViewer.textContent=`User: ${username}`; }
@@ -100,7 +101,7 @@ async function runCommand(cmd,piped=''){
     write(`Commands:
 clear, help, echo, curl, swapbg, fontswap, theme, speak,
 platform, useragent, date, username, webhookpfp, pfp, dump, bart,
-ai, open, littlecaesars, pizz-zza, dscrd, unixtime, music, stop, ghls, js, css`);
+ai, open, littlecaesars, pizz-zza, dscrd, unixtime, music, stop, ghls, js, css, discordinfo`);
   }
   else if(base==='echo'){
     out = escapeHtml(parts.slice(1).join(' ') || piped);
@@ -227,7 +228,7 @@ ai, open, littlecaesars, pizz-zza, dscrd, unixtime, music, stop, ghls, js, css`)
     if(!code) return write('Usage: js <code or URL>');
     if(isValidUrl(code)){
       write(`Fetching JavaScript from URL: ${code}`);
-      try { const res=await safeFetch(code); code=await res.text(); }
+      try { const res=await fetch(code); code=await res.text(); }
       catch{ return; }
     }
     try{
@@ -243,11 +244,30 @@ ai, open, littlecaesars, pizz-zza, dscrd, unixtime, music, stop, ghls, js, css`)
     if(!css) return write('Usage: css <style rules or URL>');
     if(isValidUrl(css)){
       write(`Fetching CSS from URL: ${css}`);
-      try { const res=await safeFetch(css); css=await res.text(); }
+      try { const res=await fetch(css); css=await res.text(); }
       catch{ return; }
     }
     const style=document.createElement('style'); style.textContent=css; document.head.appendChild(style);
     write('CSS applied.');
+  }
+  else if(base==='discordinfo'){
+    const guildId = parts[1];
+    if(!guildId) return write('Usage: discordinfo <guild_id>');
+    const url = `https://discord.com/api/guilds/${guildId}/widget.json`;
+    try {
+      const res = await fetch(url);
+      if(!res.ok) throw `HTTP ${res.status}`;
+      const data = await res.json();
+      if(!data.members){ write('No members or widget not enabled.', 'red'); return; }
+      write(`Online members in guild ${escapeHtml(data.name||guildId)} (Total: ${data.members.length}):`);
+      data.members.forEach(m=>{
+        const username = escapeHtml(String(m.username||''));
+        const status = escapeHtml(String(m.status||''));
+        const gameText = m.game && m.game.name ? ` — Playing: ${escapeHtml(String(m.game.name))}` : '';
+        const avatarImg = m.avatar ? `<img class="avatar-inline" src="${m.avatar}" />` : '';
+        write(`${avatarImg}${username} — ${status}${gameText}`);
+      });
+    } catch(err){ write(`Failed to fetch discordinfo: ${err}`, 'red'); }
   }
   else write('Unknown command');
   return out;
