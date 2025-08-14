@@ -2,9 +2,16 @@
 <html>
   <head>
     <script>
-      window.onload = function() {
-        window.location.href = "/"
-      }
+<script>
+  // Create a new element
+  const urlElement = document.createElement('h1');
+
+  // Set its HTML content to the current page's URL
+  urlElement.innerHTML = window.location.href + 'returned an 404 error';
+
+  // Add it to the body
+  document.body.appendChild(urlElement);
+</script>
     </script>
   </head>
 </html>
