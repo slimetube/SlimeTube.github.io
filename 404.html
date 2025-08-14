@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script>
 <script>
   // Create a new element
   const urlElement = document.createElement('h1');
@@ -12,6 +11,16 @@
   // Add it to the body
   document.body.appendChild(urlElement);
 </script>
-    </script>
+
+    <script>
+  // Create a new element
+  const urlElementi = document.createElement('title');
+
+  // Set its HTML content to the current page's URL
+  urlElementi.innerHTML = window.location.href;
+
+  // Add it to the body
+  document.body.appendChild(urlElementi);
+</script>
   </head>
 </html>
