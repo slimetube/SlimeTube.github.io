@@ -25,7 +25,7 @@ let effects = discord.variables.effects
 console.log(effects.includes(args))}} {set:offset|1} {if:{arg:0}|=|normal|then:{set:code|volume # 1}}
 {if:{arg:0}|=|reversed|then:{set:code|reverse #}}
 {if:{arg:0}|=|censor|then:{set:code|blur # 100
-blur # 100}
+blur # 100}}
 {if:{arg:0}|=|mouse|then:{set:code|invert #
 invert #
 invert #
@@ -37,7 +37,7 @@ invert #
 invert #
 invert #
 invert #
-invert #}
+invert #}}
 {if:{arg:0}|=|g major 591|then:{set:code|invert #
 swaprgba # bgr
 hueshifthsv # -145
