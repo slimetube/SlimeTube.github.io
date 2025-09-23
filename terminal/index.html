@@ -65,10 +65,28 @@ updateUsernameViewer();
 
 let musicAudio=null;
 
+// blocked words/sites
+let blockedWords=[],blockedSites=[];
+fetch("https://giggityfiles.github.io/blocked.json")
+  .then(r=>r.json())
+  .then(data=>{
+    blockedWords=data.words||[];
+    blockedSites=data.sites||[];
+  });
+function isBlocked(input){
+  for(const w of blockedWords){
+    if(input.toLowerCase().includes(w.toLowerCase())) return `Blocked word: ${w}`;
+  }
+  for(const s of blockedSites){
+    if(input.toLowerCase().includes(s.toLowerCase())) return `Blocked site: ${s}`;
+  }
+  return null;
+}
+
 async function runCommand(cmd,piped=""){
   const parts=cmd.trim().split(" ");const base=parts[0].toLowerCase();const args=parts.slice(1);let out="";
   if(base==="clear"){terminal.innerHTML="";}
-  else if(base==="help"){write(`Commands: clear, help, echo, curl, swapbg, fontswap, theme, speak, platform, useragent, date, username, pfp, sethook, resethook, dump, bart, ai, open, littlecaesars, dscrd, unixtime, music, stop, ghls, js, css, discordinfo, setbg, resetbg, title, ip`);}
+  else if(base==="help"){write(`Commands: clear, help, echo, curl, swapbg, fontswap, theme, speak, platform, useragent, date, username, pfp, sethook, resethook, dump, bart, ai, open, dscrd, unixtime, music, stop, js, css, discordinfo, setbg, resetbg, title, ip`);}
   else if(base==="echo"){out=args.join(" ")||piped;write(escapeHtml(out));}
   else if(base==="curl"){if(!args[0])return write("Usage: curl <url>");try{const r=await fetch(args[0]);const t=await r.text();out=t;write(escapeHtml(t));}catch{write("Failed to fetch","red");}}
   else if(base==="swapbg"){document.body.style.backgroundColor=args[0]||"#000";document.body.style.backgroundImage=args[1]?`url(${args[1]})`:"";document.body.style.backgroundSize="100% 100%";write("Background updated");}
@@ -101,7 +119,13 @@ async function runCommand(cmd,piped=""){
   return out;
 }
 
-async function handle(cmd){write(`> ${escapeHtml(cmd)}`);await runCommand(cmd);}
+async function handle(cmd){
+  const blocked=isBlocked(cmd);
+  if(blocked){ write(`❌ ${blocked}`,"red"); return; }
+  write(`> ${escapeHtml(cmd)}`);
+  await runCommand(cmd);
+}
+
 input.addEventListener("keydown",e=>{if(e.key==="Enter"){const cmd=input.value.trim();if(cmd){history.push(cmd);localStorage.setItem("cmd_history",JSON.stringify(history));handle(cmd);input.value="";historyIndex=history.length;}}else if(e.key==="ArrowUp"){if(historyIndex>0)input.value=history[--historyIndex];e.preventDefault();}else if(e.key==="ArrowDown"){if(historyIndex<history.length-1)input.value=history[++historyIndex];else input.value="",historyIndex=history.length;e.preventDefault();}});
 
 // Welcome
