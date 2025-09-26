@@ -1,1 +1,1 @@
-{replace:Holly|Xbox|{replace:console.error|console.log|{text:https://pastebin.com/raw/Pk0b6qf}}}
+{replace:Holly|Xbox|{replace:console.error|console.log|{text:https://pastebin.com/raw/XCDCud0L}}}
