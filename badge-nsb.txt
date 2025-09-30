@@ -1,0 +1,16 @@
+{set:unix|{unix}}
+{set:label|{or:{argsafe:0}|{nsfwfilter:{replycontent}}|Badge}}
+{set:message|{or:{argsafe:1}|{name}|NotSoBot}}
+{set:color|{or:{argsafe:2}|{choose:red|orange|yellow|lime|green|cyan|blue|purple|magenta|black|grey|white|003791|}}}
+{set:icon|{or:{argsafe:3}|{choose:youtube|google|github|dogecoin|android|playstation|playstation2|playstation3|playstation4|playstation5|playstationvita|playstationportable|googlechrome|youtube|youtubekids|youtubegaming|youtubestudio|youtubeshorts}}}
+
+{set:labelu|{url:{get:label}}}
+{set:messageu|{url:{get:message}}}
+{set:coloru|{lower:{get:color}}}
+{set:icona|{url:{get:icon}}}
+
+{mediascript:
+load https://img.shields.io/badge/{get:labelu}-{get:messageu}-{get:coloru}?logo={get:icona} badge
+render badge image/png
+}
+-# This tag's code took {math:(({unix}-{get:unix})/1000)} seconds to fully execute!
